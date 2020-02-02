@@ -1,0 +1,26 @@
+{
+  "name": "prime-functions",
+  "version": "1.0.0",
+  "description": "Prime Numbers Functions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sundowatch/prime-functions.git"
+  },
+  "keywords": [
+    "prime",
+    "numbers",
+    "math",
+    "functions",
+    "mathematics"
+  ],
+  "author": ["Ümit Tunç", "İbrahim Sanduvac"],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sundowatch/prime-functions/issues"
+  },
+  "homepage": "https://github.com/sundowatch/prime-functions"
+}
