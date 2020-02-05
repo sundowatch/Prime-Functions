@@ -170,6 +170,6 @@ pr.isEmirp(19);    // false
 #### nthEmirp(number)
 returns nth emirp. 1 is the 11 
 ```javascript
-pr.isEmirp(2);    // 13
-pr.isEmirp(5);    // 37
+pr.nthEmirp(2);    // 13
+pr.nthEmirp(5);    // 37
 ```
