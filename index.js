@@ -497,3 +497,22 @@ exports.nthEmirp = (n) => {
     }
     return res;
 }
+
+exports.hasTwinPrime = (prime, returnItsTwin=true) => {
+    if(!this.isPrime(prime))
+        return false;
+    else if(this.isPrime(prime-2) || this.isPrime(prime+2)){
+        if(returnItsTwin){
+            if(this.isPrime(prime-2) && this.isPrime(prime+2))
+                return [prime-2, prime+2];
+            else if(this.isPrime(prime-2))
+                return prime-2;
+            else
+                return prime+2;
+        }
+        else
+            return true;
+    }
+    else
+        return false;
+}

@@ -173,3 +173,13 @@ returns nth emirp. 1 is the 11
 pr.nthEmirp(2);    // 13
 pr.nthEmirp(5);    // 37
 ```
+
+#### hasTwinPrime(number, returnItsTwin=true)
+check if the prime has a twin
+```javascript
+pr.hasTwinPrime(3);    // 5
+pr.hasTwinPrime(5);    // [5, 7]
+pr.hasTwinPrime(311);   // 313
+pr.hasTwinPrime(3, false);   // True
+pr.hasTwinPrime(37);    // false
+```
