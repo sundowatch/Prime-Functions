@@ -434,3 +434,66 @@ exports.times = (arr) => {
 exports.remainDividedBy = (number, division) => {
     return number % division;
 }
+
+exports.beautifyInteger = (number) => {
+    let len = this.digits(number);
+    let str = String(number).split('');
+    str = str.reverse();
+    let res = '';
+    for (let i = 0; i < str.length; i++) {
+        res += str[i];
+        if( (i+1) % 3 == 0 && i != str.length - 1){
+            res += '.';
+        }
+            
+    }
+    res = res.split('');
+    res = res.reverse();
+    res = res.join('');
+    return res;
+}
+
+exports.integerToText = (integer, language='en') => {
+    let alph;
+    if(language == 'en')
+        alph = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+    else if(language == 'tr')
+        alph = ['a','b','c','ç','d','e','f','g','ğ','h','ı','i','j','k','l','m','n','o','ö','p','r','s','ş','t','u','ü', 'v', 'y', 'z'];
+    integer = String(integer).split('');
+
+    let res = '';
+    for (let i = 0; i < integer.length; i++) {
+        res += alph[parseInt(integer[i])];
+    }
+    return res;
+}
+
+exports.isEmirp = (number) => {
+    let reverse = String(number).split('');
+    reverse = reverse.reverse();
+    reverse = parseInt(reverse.join(''));
+    if(this.isPrime(number) && this.isPrime(reverse))
+        return true;
+    else
+        return false;
+}
+
+exports.nthEmirp = (n) => {
+    let stop = true;
+    let i = 11;
+    let counter = 0;
+    let res;
+    while(stop){
+        if(this.isEmirp(i)){
+            counter += 1;
+            if(counter == n){
+                res = i;
+                stop = false;
+                break;
+            }
+            
+        }
+        i += 2;
+    }
+    return res;
+}

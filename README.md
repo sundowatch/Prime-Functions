@@ -1,4 +1,4 @@
-# Crazy Primes (Useful Prime Numbers Functions)
+# Prime Functions (Useful Prime Numbers Functions)
 
 ![](https://dev.truncgil.com/prime-logo-180x180.png)
 
@@ -14,11 +14,11 @@ On that matter we've built a library to create and find prime numbers
 - Relations with normal integers
 
 ## Installation
-<pre>npm install crazy-primes</pre>
+<pre>npm install prime-functions</pre>
 ## Usage
 
 ```javascript
-const pr = require('crazy-primes');
+const pr = require('prime-functions');
 ```
 
 ## Functions
@@ -145,4 +145,31 @@ helper function
 That should be bottom of the script
 ```javascript
 pr.printExecutionTime();    // Execution time: 119ms
+```
+
+#### beautifyInteger()
+helper function
+```javascript
+pr.beautifyInteger(123123123);    // 123.123.123
+```
+
+#### integerToText()
+helper function
+```javascript
+pr.integerToText(1234567890);    // bcdefghija
+```
+
+#### isEmirp(number)
+returns if the given number is emirp.
+```javascript
+pr.isEmirp(13);    // true
+pr.isEmirp(31);    // true
+pr.isEmirp(19);    // false
+```
+
+#### nthEmirp(number)
+returns nth emirp. 1 is the 11 
+```javascript
+pr.isEmirp(2);    // 13
+pr.isEmirp(5);    // 37
 ```
