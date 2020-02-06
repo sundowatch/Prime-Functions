@@ -516,3 +516,32 @@ exports.hasTwinPrime = (prime, returnItsTwin=true) => {
     else
         return false;
 }
+
+exports.factorial = (number) => {
+    let res = 1;
+    for(let i = number; i > 1; i--){
+        res *= i;
+    }
+    return res;
+}
+
+exports.wilsonsTheorem = (n, returnWithExplanation=true) => {
+    let res = '';
+    let res2;
+    if(this.isPrime(n+1) && this.factorial(n) % (n+1) === n){
+        res2 = (( this.factorial(n) % (n+1) ) / n ) * (n-1) + 2;
+    }
+    else
+        res2 = false;
+    if(returnWithExplanation){
+        res += "FORMULA: f(n) = ( " + n + "! mod("+n+"+1) / n ) * ( "+n+"+1 ) + 2 ";
+        res += " --- CONDITIONS: if " + n + "+1 is prime if and only if " + n + "! mod("+n+"+1) = " + n + " ";
+        return {
+            formula: res,
+            result: res2
+        }
+    }
+    else{
+        return res2;
+    }  
+}

@@ -183,3 +183,28 @@ pr.hasTwinPrime(311);   // 313
 pr.hasTwinPrime(3, false);   // True
 pr.hasTwinPrime(37);    // false
 ```
+
+#### factorial(number)
+helper
+```javascript
+pr.factorial(3);    // 6
+pr.factorial(pr.factorial(3));    // 720
+```
+
+#### wilsonsTheorem(n, returnWithExplanation=true)
+The [Wilson's Theorem](https://en.wikipedia.org/wiki/Wilson%27s_theorem). 
+
+n+1 should be prime number if and only if n! mod(n+1) = n.
+
+returnWithExplanation is the conditions and explanation of Wilson's Theorem.
+```javascript
+pr.wilsonsTheorem(6);
+/*
+{
+  formula: 'FORMULA: f(n) = ( 6! mod(6+1) / n ) * ( 6+1 ) + 2  --- CONDITIONS: if 6+1 is prime if and only if 6! mod(6+1) = 6 ',
+  result: 7
+}
+*/
+
+pr.wilsonsTheorem(6, false);    // 7
+```
