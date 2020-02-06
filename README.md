@@ -22,7 +22,49 @@ const pr = require('prime-functions');
 ```
 
 ## Functions
+- Main Functions
+    - [isPrime](#isprimenumber)
+    - [nthPrime](#nthprimeorder)
+    - [indexOfPrime](#indexofprimeprimenumber)
+    - [nthPrimesSum](#nthprimessumarguments)
+    - [nthPrimesTimes](#nthprimestimesarguments)
+    - [nextPrime](#nextprimecurrentprime)
+    - [prevPrime](#prevprimecurrentprime)
+    - [primeSmallerThan](#primesmallerthannumber)
+    - [primeBiggerThan](#primebiggerthannumber)
+    - [primeDivisors](#primedivisorsnonprimenumber)
+    - [primeDivisorsSum](#primedivisorssumnonprimenumber)
+    - [primeDivisorsTimes](#primedivisorstimesnonprimenumber)
+    - [isPrimeOrDivisors](#isprimeordivisorsnumber)
+    - [primesSmallerThan](#closestprimenumber)
+    - [closestPrime](#isprimenumber)
+    - [randomPrime](#randomprimeminval-maxval)
+    - [whatWillThisPrimeBe](#whatwillthisprimebeprimenumber)
+    - [nextNPrimes](#nextnprimesminval-n)
+    - [prevNPrimes](#prevnprimesnumber)
+    - [primesBetween](#primesbetweennumber1-number2)
+    - [firstNPrimes](#firstnprimescount)
+    - [isEmirp](#isemirpnumber)
+    - [nthEmirp](#nthemirpnumber)
+    - [hasTwinPrime](#hastwinprimenumber-returnitstwintrue)
+- Theoretical Functions
+    - [isMersennePrime](#ismersenneprimeprimenumber)
+    - [nthMersennePrime](#nthmersenneprimeorder)
+    - [nthMersennePrimeExponents](#nthmersenneprimeexponentsorder)
+    - [wilsonsTheorem](#wilsonstheoremn-returnwithexplanationtrue)
+- Helper Functions
+    - [digits](#digitsnumber)
+    - [sum](#sumnumbersarray)
+    - [times](#timesnumbersarray)
+    - [remainDividedBy](#remaindividedbynumber-divisor)
+    - [printExecutionTime](#printexecutiontime)
+    - [beautifyInteger](#beautifyinteger)
+    - [integertotext](#integertotext)
+    - [factorial](#factorialnumber)
+
+
 #### isPrime(number)
+Return if a number is [Prime Number](https://en.wikipedia.org/wiki/Prime_number)
 ```javascript
 let result = pr.isPrime(13);    // true
 ```
@@ -30,10 +72,12 @@ let result = pr.isPrime(13);    // true
 let result = pr.isPrime(28);    // false
 ```
 #### nthPrime(order)
+Get nth prime
 ```javascript
 let result = pr.nthPrime(5);    // 11
 ```
 #### indexOfPrime(primeNumber)
+Get index of prime number
 ```javascript
 let result = pr.indexOfPrime(13);    // 5
 ```
@@ -75,14 +119,17 @@ let result = pr.primeDivisorsSum(42);    // 2 + 3 + 7 = 12
 let result = pr.primeDivisorsTimes(42);    // 2 * 3 * 7 = 42
 ```
 #### isMersennePrime(primeNumber)
+Checks if a prime is a [Mersenne Prime](https://en.wikipedia.org/wiki/Mersenne_prime)
 ```javascript
 let result = pr.isMersennePrime(127);    // true
 ```
 #### nthMersennePrime(order)
+Get nth [Mersenne Prime](https://en.wikipedia.org/wiki/Mersenne_prime)
 ```javascript
 let result = pr.nthMersennePrime(5);    // 8191
 ```
 #### nthMersennePrimeExponents(order)
+Get nth [Mersenne Prime](https://en.wikipedia.org/wiki/Mersenne_prime)'s exponents
 ```javascript
 let result = pr.nthMersennePrimeExponents(5);    // 13  - That means 2^13
 ```

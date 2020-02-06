@@ -1,6 +1,6 @@
 {
   "name": "prime-functions",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "Advanced Prime Numbers Functions. All functions that you need. Generate primes and process with prime numbers",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,11 @@
     "numbers",
     "math",
     "functions",
-    "mathematics"
+    "mathematics",
+    "isPrime",
+    "wilson theory",
+    "prime theory",
+    "factorial"
   ],
   "author": ["Ümit Tunç", "İbrahim Sanduvac"],
   "license": "MIT",
