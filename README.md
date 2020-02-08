@@ -47,6 +47,8 @@ const pr = require('prime-functions');
     - [isEmirp](#isemirpnumber)
     - [nthEmirp](#nthemirpnumber)
     - [hasTwinPrime](#hastwinprimenumber-returnitstwintrue)
+    - [isTruncatable](#isTruncatablenumber)
+    - [truncatableValues](#truncatablevaluesnumber)
 - Theoretical Functions
     - [isMersennePrime](#ismersenneprimeprimenumber)
     - [nthMersennePrime](#nthmersenneprimeorder)
@@ -62,6 +64,10 @@ const pr = require('prime-functions');
     - [beautifyInteger](#beautifyinteger)
     - [integertotext](#integertotext)
     - [factorial](#factorialnumber)
+    - [integerToString](#integertostringnumber)
+    - [integerToArray](#integertoarraynumber)
+    - [firstNDigits](#firstndigitsnumber-n-returnasintegertrue)
+    - [lastNDigits](#lastndigitsnumber-n-returnasintegertrue)
 
 
 #### isPrime(number)
@@ -207,6 +213,34 @@ helper function
 pr.integerToText(1234567890);    // bcdefghija
 ```
 
+#### integerToString(number)
+helper function
+```javascript
+pr.integerToString(1234567890);    // '1234567890'
+```
+
+#### integerToArray(number)
+helper function
+```javascript
+pr.integerToArray(1234567890);    // ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
+```
+
+#### firstNDigits(number, n, returnAsInteger=true)
+helper function
+
+Returns number first n digits
+```javascript
+pr.firstNDigits(1234567890, 4);    // 1234
+```
+
+#### lastNDigits(number, n, returnAsInteger=true)
+helper function
+
+Returns number last n digits
+```javascript
+pr.lastNDigits(1234567890, 4);    // 7890
+```
+
 #### isEmirp(number)
 returns if the given number is emirp.
 ```javascript
@@ -273,4 +307,26 @@ pr.phi(7)       // 6
 pr.totient(8)   // 4
 pr.phi(9)       // 6
 pr.phi(10)      // 4
+```
+
+#### isTruncatable(number)
+Check if the given number is [Truncatable Prime](https://en.wikipedia.org/wiki/Truncatable_prime)
+
+```javascript
+pr.isTruncatable(3797); //true
+pr.isTruncatable(373);  //true
+pr.isTruncatable(23);   //false
+```
+
+#### truncatableValues(number)
+Returns number's [Truncatable](https://en.wikipedia.org/wiki/Truncatable_prime) values
+
+```javascript
+pr.truncatableValues(3797);
+/*
+{
+  leftToRight: [ 3, 37, 379, 3797 ],
+  rightToLeft: [ 7, 97, 797, 3797 ]
+}
+*/
 ```

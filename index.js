@@ -560,3 +560,73 @@ exports.phi = exports.totient = (n) => {
         result -= parseInt(result) / n;
     return result;
 }
+
+exports.integerToString = (number) => {
+    return String(number);
+}
+
+exports.integerToArray = (number) => {
+    return String(number).split('');
+}
+
+exports.firstNDigits = (number, n, returnAsInteger=true) => {
+    let res = this.integerToArray(number);
+    if(returnAsInteger)
+        return parseInt(res.slice(0, n).join(''));
+    else
+        return res.slice(0, n).join('');
+}
+
+exports.lastNDigits = (number, n, returnAsInteger=true) => {
+    let res = this.integerToArray(number);
+    if(returnAsInteger)
+        return parseInt(res.slice(res.length - n, res.length).join(''));
+    else
+        return res.slice(res.length - n,  res.length).join('');
+}
+
+exports.isTruncatable = (prime) => {
+    if(!this.isPrime(prime)){
+        return false;
+    } else if(prime == 2 || prime == 3 || prime == 5 || prime == 7){
+        return false;
+    } else{
+        let res = true;
+        for(let i = 1; i <= this.digits(prime); i++){
+            if(!this.isPrime( this.firstNDigits(prime, i) )){
+                res = false;
+                break;
+            }
+        }
+        if(res){
+            for(let i = 1; i <= this.digits(prime); i++){
+                if(!this.isPrime( this.lastNDigits(prime, i) )){
+                    res = false;
+                    break;
+                }
+            }
+        }
+        return res;
+    }
+}
+
+exports.truncatableValues = (prime) => {
+    if(this.isTruncatable(prime)){
+        let res = {
+            leftToRight : [],
+            rightToLeft : []
+        };
+        for(let i = 1; i <= this.digits(prime); i++){
+            if(this.isPrime( this.firstNDigits(prime, i) )){
+               res.leftToRight.push(this.firstNDigits(prime, i)); 
+            }
+        }
+        for(let i = 1; i <= this.digits(prime); i++){
+            if(this.isPrime( this.lastNDigits(prime, i) )){
+                res.rightToLeft.push(this.lastNDigits(prime, i));
+            }
+        }
+        return res;
+    } else
+        return false;
+}
