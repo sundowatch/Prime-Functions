@@ -545,3 +545,18 @@ exports.wilsonsTheorem = (n, returnWithExplanation=true) => {
         return res2;
     }  
 }
+
+exports.phi = exports.totient = (n) => {
+    let result = n;
+    for(let p = 2; p*p <= n; p++){
+        if(n % p == 0){
+            while(n % p == 0){
+                n = parseInt(n) / p;
+            }
+            result -= parseInt(result) / p;
+        }
+    }
+    if(n > 1)
+        result -= parseInt(result) / n;
+    return result;
+}

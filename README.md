@@ -52,6 +52,7 @@ const pr = require('prime-functions');
     - [nthMersennePrime](#nthmersenneprimeorder)
     - [nthMersennePrimeExponents](#nthmersenneprimeexponentsorder)
     - [wilsonsTheorem](#wilsonstheoremn-returnwithexplanationtrue)
+    - [phi](#phin)
 - Helper Functions
     - [digits](#digitsnumber)
     - [sum](#sumnumbersarray)
@@ -254,4 +255,22 @@ pr.wilsonsTheorem(6);
 */
 
 pr.wilsonsTheorem(6, false);    // 7
+```
+
+#### phi(n)
+Euler's [phi](https://en.wikipedia.org/wiki/Euler%27s_totient_function) and also known as [totient](https://en.wikipedia.org/wiki/Euler%27s_totient_function) function. 
+
+Function can be used as both phi and totient
+
+```javascript
+pr.totient(1)   // 1
+pr.phi(2)       // 1
+pr.phi(3)       // 2
+pr.phi(4)       // 2
+pr.totient(5)   // 4
+pr.phi(6)       // 2
+pr.phi(7)       // 6
+pr.totient(8)   // 4
+pr.phi(9)       // 6
+pr.phi(10)      // 4
 ```
