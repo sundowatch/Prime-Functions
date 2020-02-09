@@ -566,7 +566,11 @@ exports.integerToString = (number) => {
 }
 
 exports.integerToArray = (number) => {
-    return String(number).split('');
+    let arr = String(number).split('');
+    for(let i = 0; i < arr.length; i++){
+        arr[i] = parseInt(arr[i]);
+    }
+    return arr;
 }
 
 exports.firstNDigits = (number, n, returnAsInteger=true) => {
@@ -585,6 +589,13 @@ exports.lastNDigits = (number, n, returnAsInteger=true) => {
         return res.slice(res.length - n,  res.length).join('');
 }
 
+exports.reverseNumber = (number) => {
+    let res = this.integerToArray(number);
+    res = res.reverse();
+    res = res.join('');
+    return parseInt(res);
+}
+
 exports.isTruncatable = (prime) => {
     if(!this.isPrime(prime)){
         return false;
@@ -600,7 +611,8 @@ exports.isTruncatable = (prime) => {
         }
         if(res){
             for(let i = 1; i <= this.digits(prime); i++){
-                if(!this.isPrime( this.lastNDigits(prime, i) )){
+                let rev = this.lastNDigits(prime, i);
+                if(!this.isPrime( rev )){
                     res = false;
                     break;
                 }
@@ -622,11 +634,46 @@ exports.truncatableValues = (prime) => {
             }
         }
         for(let i = 1; i <= this.digits(prime); i++){
-            if(this.isPrime( this.lastNDigits(prime, i) )){
-                res.rightToLeft.push(this.lastNDigits(prime, i));
+            let rev = this.lastNDigits(prime, i);
+            if(this.isPrime( rev )){
+                res.rightToLeft.push(rev);
             }
         }
         return res;
     } else
         return false;
+}
+
+exports.nthTruncatablePrime = (n) => {
+    let counter = 0;
+    let primeCounter = 1;
+    let res;
+    while(counter != n){
+        if(this.isTruncatable(this.nthPrime(primeCounter))){
+            counter += 1;
+            if(counter == n){
+                res = this.nthPrime(primeCounter);
+                break;
+            }
+        }
+        primeCounter+=1;
+    }
+    return res;
+}
+
+exports.isPandigitalPrime = (number) => {
+    if(!this.isPrime(number))
+        return false;
+    else{
+        let numArr = this.integerToArray(number);
+        let res = true;
+        for(let i = 0; i < numArr.length; i++){
+            let newArr = numArr.splice(i, 1);
+            if(newArr.indexOf(numArr[i]) != -1){
+                res = false;
+                break;
+            }
+        }
+        return res;
+    }
 }

@@ -49,6 +49,8 @@ const pr = require('prime-functions');
     - [hasTwinPrime](#hastwinprimenumber-returnitstwintrue)
     - [isTruncatable](#isTruncatablenumber)
     - [truncatableValues](#truncatablevaluesnumber)
+    - [nthTruncatablePrime](#nthtruncatableprimen)
+    - [isPandigitalPrime](#ispandigitalprimen)
 - Theoretical Functions
     - [isMersennePrime](#ismersenneprimeprimenumber)
     - [nthMersennePrime](#nthmersenneprimeorder)
@@ -68,6 +70,7 @@ const pr = require('prime-functions');
     - [integerToArray](#integertoarraynumber)
     - [firstNDigits](#firstndigitsnumber-n-returnasintegertrue)
     - [lastNDigits](#lastndigitsnumber-n-returnasintegertrue)
+    - [reverseNumber](#reversenumbernumber)
 
 
 #### isPrime(number)
@@ -207,6 +210,12 @@ helper function
 pr.beautifyInteger(123123123);    // 123.123.123
 ```
 
+#### reverseNumber(number)
+helper function
+```javascript
+pr.reverseNumber(123456);    // 654321
+```
+
 #### integerToText()
 helper function
 ```javascript
@@ -330,3 +339,18 @@ pr.truncatableValues(3797);
 }
 */
 ```
+
+#### nthTruncatablePrime(n)
+Finds the nth [Truncatable Prime](https://en.wikipedia.org/wiki/Truncatable_prime)
+
+```javascript
+pr.nthTruncatablePrime(10);   // 3797
+```
+
+#### isPanditalPrime(n)
+Checks if the given number is [Pandigital Prime](https://oeis.org/wiki/Pandigital_numbers)
+
+```javascript
+pr.isPandigitalPrime(2143);   // true
+```
+
