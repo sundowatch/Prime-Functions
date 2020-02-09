@@ -1,6 +1,6 @@
 {
   "name": "prime-functions",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Advanced Prime Numbers Functions. All functions that you need. Generate primes and process with prime numbers",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,8 @@
   },
   "keywords": [
     "prime",
+    "primes",
+    "number",
     "numbers",
     "math",
     "functions",
@@ -23,7 +25,10 @@
     "euler",
     "phi",
     "totient",
-    "wilson"
+    "wilson",
+    "random",
+    "pi",
+    "generate"
   ],
   "author": ["Ümit Tunç", "İbrahim Sanduvac"],
   "license": "MIT",
