@@ -15,6 +15,7 @@ On that matter we've built a library to create and find prime numbers
 
 ## Installation
 <pre>npm install prime-functions</pre>
+
 ## Usage
 
 ```javascript

@@ -1,14 +1,18 @@
-let start = new Date();
-let simulateTime = 5;
 
-exports.printExecutionTime = () => {
+class primeFunctions{
+
+}
+
+let start = new Date();
+primeFunctions.simulateTime = 5;
+primeFunctions.printExecutionTime = () => {
     setTimeout(function (argument) {
         let end = new Date() - start;
         console.info('Execution time: %dms', end)
     }, simulateTime)
 }
 
-exports.isPrime = (val) => {
+primeFunctions.isPrime = (val) => {
     if (val == 1)
         return false;
     else if (val == 2)
@@ -29,7 +33,7 @@ exports.isPrime = (val) => {
     }
 }
 
-exports.isPrimeOld = (val) => {
+primeFunctions.isPrimeOld = (val) => {
     res = true;
     for (let i = 2; i < val; i++) {
         if (val % i == 0) {
@@ -40,7 +44,7 @@ exports.isPrimeOld = (val) => {
     return res;
 }
 
-exports.nthPrime = (val, maxIterator = 99999999999) => {
+primeFunctions.nthPrime = (val, maxIterator = 99999999999) => {
     let counter = 1;
     if (val == 1) {
         return 2;
@@ -59,7 +63,7 @@ exports.nthPrime = (val, maxIterator = 99999999999) => {
     }
 }
 
-exports.indexOfPrime = (val) => { // 0 is first index
+primeFunctions.indexOfPrime = (val) => { // 0 is first index
     if (!this.isPrime(val))
         return false;
     else {
@@ -76,7 +80,7 @@ exports.indexOfPrime = (val) => { // 0 is first index
     }
 }
 
-exports.nthPrimesSum = (...args) => {
+primeFunctions.nthPrimesSum = (...args) => {
     var sum = 0;
     for (var i = 0; i < args.length; i++) {
         sum += this.nthPrime(args[i]);
@@ -84,7 +88,7 @@ exports.nthPrimesSum = (...args) => {
     return sum;
 }
 
-exports.nthPrimesTimes = (...args) => {
+primeFunctions.nthPrimesTimes = (...args) => {
     var times = 1;
     for (var i = 0; i < args.length; i++) {
         times *= this.nthPrime(args[i]);
@@ -92,7 +96,7 @@ exports.nthPrimesTimes = (...args) => {
     return times;
 }
 
-exports.nextPrime = (val) => {
+primeFunctions.nextPrime = (val) => {
     if (!this.isPrime(val))
         return false;
     else {
@@ -110,7 +114,7 @@ exports.nextPrime = (val) => {
     }
 }
 
-exports.prevPrime = (val) => {
+primeFunctions.prevPrime = (val) => {
     if (!this.isPrime(val) || val == 2)
         return false;
     else {
@@ -128,7 +132,7 @@ exports.prevPrime = (val) => {
     }
 }
 
-exports.primeSmallerThan = (val) => {
+primeFunctions.primeSmallerThan = (val) => {
     if (this.isPrime(val)) {
         return this.prevPrime(val);
     } else {
@@ -145,7 +149,7 @@ exports.primeSmallerThan = (val) => {
     }
 }
 
-exports.primeBiggerThan = (val) => {
+primeFunctions.primeBiggerThan = (val) => {
     if (this.isPrime(val))
         return this.nextPrime(val);
     else {
@@ -162,7 +166,7 @@ exports.primeBiggerThan = (val) => {
     }
 }
 
-exports.primeDivisors = (val) => {
+primeFunctions.primeDivisors = (val) => {
     if (this.isPrime(val))
         return false; //Prime
     else {
@@ -177,7 +181,7 @@ exports.primeDivisors = (val) => {
     }
 }
 
-exports.primeDivisorsSum = (val) => {
+primeFunctions.primeDivisorsSum = (val) => {
     if (this.isPrime(val))
         return false;
     else {
@@ -190,7 +194,7 @@ exports.primeDivisorsSum = (val) => {
     }
 }
 
-exports.primeDivisorsTimes = (val) => {
+primeFunctions.primeDivisorsTimes = (val) => {
     if (this.isPrime(val))
         return false;
     else {
@@ -203,7 +207,7 @@ exports.primeDivisorsTimes = (val) => {
     }
 }
 
-exports.isMersennePrime = (val) => {
+primeFunctions.isMersennePrime = (val) => {
     if (!this.isPrime(val))
         return false;
     else {
@@ -216,7 +220,7 @@ exports.isMersennePrime = (val) => {
     }
 }
 
-exports.nthMersennePrime = (val, maxIterator = 99999999999) => { // 0 is first
+primeFunctions.nthMersennePrime = (val, maxIterator = 99999999999) => { // 0 is first
     let counter = 0;
     let res = false;
     for (let i = 1; i < maxIterator; i++) {
@@ -233,7 +237,7 @@ exports.nthMersennePrime = (val, maxIterator = 99999999999) => { // 0 is first
     return res;
 }
 
-exports.nthMersennePrimeExponents = (val, maxIterator = 99999999999) => {
+primeFunctions.nthMersennePrimeExponents = (val, maxIterator = 99999999999) => {
     let mersenne = this.nthMersennePrime(val, maxIterator);
     mersenne = mersenne + 1;
     let i = 0;
@@ -253,14 +257,14 @@ exports.nthMersennePrimeExponents = (val, maxIterator = 99999999999) => {
     return ret;
 }
 
-exports.isPrimeOrDivisors = (val) => {
+primeFunctions.isPrimeOrDivisors = (val) => {
     if (this.isPrime(val))
         return true;
     else
         return this.primeDivisors(val);
 }
 
-exports.primesSmallerThan = (val) => {
+primeFunctions.primesSmallerThan = (val) => {
     var i = 1;
     var res = [];
     while (1 == 1) {
@@ -273,7 +277,7 @@ exports.primesSmallerThan = (val) => {
     return res;
 }
 
-exports.closestPrime = (val) => {
+primeFunctions.closestPrime = (val) => {
     let bigger = false;
     let smaller = false;
     for (let i = val + 1; i < Math.pow(val, 3); i++) {
@@ -302,13 +306,13 @@ exports.closestPrime = (val) => {
     return res;
 }
 
-exports.randomPrime = (minVal = 2, maxVal = 9999999999999999) => {
+primeFunctions.randomPrime = (minVal = 2, maxVal = 9999999999999999) => {
     let rnd = Math.floor(Math.random() * (maxVal - minVal)) + minVal;
     rnd = this.closestPrime(rnd);
     return rnd;
 }
 
-exports.randomPrimeDigits = (digit) => {
+primeFunctions.randomPrimeDigits = (digit) => {
     let a = "1";
     let b = "9";
     for (let i = 0; i < digit; i++) {
@@ -323,7 +327,7 @@ exports.randomPrimeDigits = (digit) => {
 
 }
 
-exports.whatWillThisPrimeBe = (val) => {
+primeFunctions.whatWillThisPrimeBe = (val) => {
     if (this.isPrime(val)) {
         let arr = [
             "It'll communicate with you",
@@ -337,7 +341,7 @@ exports.whatWillThisPrimeBe = (val) => {
         return false;
 }
 
-exports.nextNPrimes = (minVal, n) => {
+primeFunctions.nextNPrimes = (minVal, n) => {
     let primes = [];
     let it;
     for (var i = 0; i < n; i++) {
@@ -351,7 +355,7 @@ exports.nextNPrimes = (minVal, n) => {
     return primes;
 }
 
-exports.prevNPrimes = (maxVal, n) => {
+primeFunctions.prevNPrimes = (maxVal, n) => {
     let primes = [];
     let it;
     for (var i = n; i > 0; i--) {
@@ -365,7 +369,7 @@ exports.prevNPrimes = (maxVal, n) => {
     return primes;
 }
 
-exports.primesBetween = (p1, p2) => {
+primeFunctions.primesBetween = (p1, p2) => {
     let check = true;
     let start;
     let finish;
@@ -397,7 +401,7 @@ exports.primesBetween = (p1, p2) => {
         return false;
 }
 
-exports.firstNPrimes = (n) => {
+primeFunctions.firstNPrimes = (n) => {
     if (n <= 0)
         return false;
     else {
@@ -411,11 +415,11 @@ exports.firstNPrimes = (n) => {
     }
 }
 
-exports.digits = (val) => {
+primeFunctions.digits = (val) => {
     return String(val).length;
 }
 
-exports.sum = (arr) => {
+primeFunctions.sum = (arr) => {
     let res = 0;
     for (let i = 0; i < arr.length; i++) {
         res += arr[i];
@@ -423,7 +427,7 @@ exports.sum = (arr) => {
     return res;
 }
 
-exports.times = (arr) => {
+primeFunctions.times = (arr) => {
     let res = 1;
     for (let i = 0; i < arr.length; i++) {
         res *= arr[i];
@@ -431,11 +435,11 @@ exports.times = (arr) => {
     return res;
 }
 
-exports.remainDividedBy = (number, division) => {
+primeFunctions.remainDividedBy = (number, division) => {
     return number % division;
 }
 
-exports.beautifyInteger = (number) => {
+primeFunctions.beautifyInteger = (number) => {
     let len = this.digits(number);
     let str = String(number).split('');
     str = str.reverse();
@@ -453,7 +457,7 @@ exports.beautifyInteger = (number) => {
     return res;
 }
 
-exports.integerToText = (integer, language='en') => {
+primeFunctions.integerToText = (integer, language='en') => {
     let alph;
     if(language == 'en')
         alph = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
@@ -468,7 +472,7 @@ exports.integerToText = (integer, language='en') => {
     return res;
 }
 
-exports.isEmirp = (number) => {
+primeFunctions.isEmirp = (number) => {
     let reverse = String(number).split('');
     reverse = reverse.reverse();
     reverse = parseInt(reverse.join(''));
@@ -478,7 +482,7 @@ exports.isEmirp = (number) => {
         return false;
 }
 
-exports.nthEmirp = (n) => {
+primeFunctions.nthEmirp = (n) => {
     let stop = true;
     let i = 11;
     let counter = 0;
@@ -498,7 +502,7 @@ exports.nthEmirp = (n) => {
     return res;
 }
 
-exports.hasTwinPrime = (prime, returnItsTwin=true) => {
+primeFunctions.hasTwinPrime = (prime, returnItsTwin=true) => {
     if(!this.isPrime(prime))
         return false;
     else if(this.isPrime(prime-2) || this.isPrime(prime+2)){
@@ -517,7 +521,7 @@ exports.hasTwinPrime = (prime, returnItsTwin=true) => {
         return false;
 }
 
-exports.factorial = (number) => {
+primeFunctions.factorial = (number) => {
     let res = 1;
     for(let i = number; i > 1; i--){
         res *= i;
@@ -525,7 +529,7 @@ exports.factorial = (number) => {
     return res;
 }
 
-exports.wilsonsTheorem = (n, returnWithExplanation=true) => {
+primeFunctions.wilsonsTheorem = (n, returnWithExplanation=true) => {
     let res = '';
     let res2;
     if(this.isPrime(n+1) && this.factorial(n) % (n+1) === n){
@@ -546,7 +550,7 @@ exports.wilsonsTheorem = (n, returnWithExplanation=true) => {
     }  
 }
 
-exports.phi = exports.totient = (n) => {
+primeFunctions.phi = (n) => {
     let result = n;
     for(let p = 2; p*p <= n; p++){
         if(n % p == 0){
@@ -561,11 +565,13 @@ exports.phi = exports.totient = (n) => {
     return result;
 }
 
-exports.integerToString = (number) => {
+primeFunctions.totient = primeFunctions.phi;
+
+primeFunctions.integerToString = (number) => {
     return String(number);
 }
 
-exports.integerToArray = (number) => {
+primeFunctions.integerToArray = (number) => {
     let arr = String(number).split('');
     for(let i = 0; i < arr.length; i++){
         arr[i] = parseInt(arr[i]);
@@ -573,7 +579,7 @@ exports.integerToArray = (number) => {
     return arr;
 }
 
-exports.firstNDigits = (number, n, returnAsInteger=true) => {
+primeFunctions.firstNDigits = (number, n, returnAsInteger=true) => {
     let res = this.integerToArray(number);
     if(returnAsInteger)
         return parseInt(res.slice(0, n).join(''));
@@ -581,7 +587,7 @@ exports.firstNDigits = (number, n, returnAsInteger=true) => {
         return res.slice(0, n).join('');
 }
 
-exports.lastNDigits = (number, n, returnAsInteger=true) => {
+primeFunctions.lastNDigits = (number, n, returnAsInteger=true) => {
     let res = this.integerToArray(number);
     if(returnAsInteger)
         return parseInt(res.slice(res.length - n, res.length).join(''));
@@ -589,14 +595,14 @@ exports.lastNDigits = (number, n, returnAsInteger=true) => {
         return res.slice(res.length - n,  res.length).join('');
 }
 
-exports.reverseNumber = (number) => {
+primeFunctions.reverseNumber = (number) => {
     let res = this.integerToArray(number);
     res = res.reverse();
     res = res.join('');
     return parseInt(res);
 }
 
-exports.isTruncatable = (prime) => {
+primeFunctions.isTruncatable = (prime) => {
     if(!this.isPrime(prime)){
         return false;
     } else if(prime == 2 || prime == 3 || prime == 5 || prime == 7){
@@ -622,7 +628,7 @@ exports.isTruncatable = (prime) => {
     }
 }
 
-exports.truncatableValues = (prime) => {
+primeFunctions.truncatableValues = (prime) => {
     if(this.isTruncatable(prime)){
         let res = {
             leftToRight : [],
@@ -644,7 +650,7 @@ exports.truncatableValues = (prime) => {
         return false;
 }
 
-exports.nthTruncatablePrime = (n) => {
+primeFunctions.nthTruncatablePrime = (n) => {
     let counter = 0;
     let primeCounter = 1;
     let res;
@@ -661,7 +667,7 @@ exports.nthTruncatablePrime = (n) => {
     return res;
 }
 
-exports.isPandigitalPrime = (number) => {
+primeFunctions.isPandigitalPrime = (number) => {
     if(!this.isPrime(number))
         return false;
     else{
@@ -677,3 +683,53 @@ exports.isPandigitalPrime = (number) => {
         return res;
     }
 }
+
+module.exports.printExecutionTime = primeFunctions.printExecutionTime;
+module.exports.isPrime = primeFunctions.isPrime;
+module.exports.isPrimeOld = primeFunctions.isPrimeOld;
+module.exports.nthPrime = primeFunctions.nthPrime;
+module.exports.indexOfPrime = primeFunctions.indexOfPrime;
+module.exports.nthPrimesSum = primeFunctions.nthPrimesSum;
+module.exports.nthPrimesTimes = primeFunctions.nthPrimesTimes;
+module.exports.nextPrime = primeFunctions.nextPrime;
+module.exports.prevPrime = primeFunctions.prevPrime;
+module.exports.primeSmallerThan = primeFunctions.primeSmallerThan;
+module.exports.primeBiggerThan = primeFunctions.primeBiggerThan;
+module.exports.primeDivisors = primeFunctions.primeDivisors;
+module.exports.primeDivisorsSum = primeFunctions.primeDivisorsSum;
+module.exports.primeDivisorsTimes = primeFunctions.primeDivisorsTimes;
+module.exports.isMersennePrime = primeFunctions.isMersennePrime;
+module.exports.nthMersennePrime = primeFunctions.nthMersennePrime;
+module.exports.nthMersennePrimeExponents = primeFunctions.nthMersennePrimeExponents;
+module.exports.isPrimeOrDivisors = primeFunctions.isPrimeOrDivisors;
+module.exports.primesSmallerThan = primeFunctions.primesSmallerThan;
+module.exports.closestPrime = primeFunctions.closestPrime;
+module.exports.randomPrime = primeFunctions.randomPrime;
+module.exports.randomPrimeDigits = primeFunctions.randomPrimeDigits;
+module.exports.whatWillThisPrimeBe = primeFunctions.whatWillThisPrimeBe;
+module.exports.nextNPrimes = primeFunctions.nextNPrimes;
+module.exports.prevNPrimes = primeFunctions.prevNPrimes;
+module.exports.primesBetween = primeFunctions.primesBetween;
+module.exports.firstNPrimes = primeFunctions.firstNPrimes;
+module.exports.digits = primeFunctions.digits;
+module.exports.sum = primeFunctions.sum;
+module.exports.times = primeFunctions.times;
+module.exports.remainDividedBy = primeFunctions.remainDividedBy;
+module.exports.beautifyInteger = primeFunctions.beautifyInteger;
+module.exports.integerToText = primeFunctions.integerToText;
+module.exports.isEmirp = primeFunctions.isEmirp;
+module.exports.nthEmirp = primeFunctions.nthEmirp;
+module.exports.hasTwinPrime = primeFunctions.hasTwinPrime;
+module.exports.factorial = primeFunctions.factorial;
+module.exports.wilsonsTheorem = primeFunctions.wilsonsTheorem;
+module.exports.phi = primeFunctions.phi;
+module.exports.totient = primeFunctions.totient;
+module.exports.integerToString = primeFunctions.integerToString;
+module.exports.integerToArray = primeFunctions.integerToArray;
+module.exports.firstNDigits = primeFunctions.firstNDigits;
+module.exports.lastNDigits = primeFunctions.lastNDigits;
+module.exports.reverseNumber = primeFunctions.reverseNumber;
+module.exports.isTruncatable = primeFunctions.isTruncatable;
+module.exports.truncatableValues = primeFunctions.truncatableValues;
+module.exports.nthTruncatablePrime = primeFunctions.nthTruncatablePrime;
+module.exports.isPandigitalPrime = primeFunctions.isPandigitalPrime;
