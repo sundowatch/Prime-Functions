@@ -34,7 +34,7 @@ You can simply use the ```prime-functions``` on the client side:
 
 ## Playground
 
-You can play with functions on [prime-functions.truncgil.com/](http://prime-functions.truncgil.com/)
+You can play with functions on [prime-functions.truncgil.com](http://prime-functions.truncgil.com/)
 
 ## Functions
 - Main Functions
