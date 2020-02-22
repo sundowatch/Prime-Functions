@@ -25,7 +25,7 @@ const pr = require('prime-functions');
 You can simply use the ```prime-functions``` on the client side:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/sundowatch/prime-functions/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prime-functions/index.min.js"></script>
 <script>
     const pr = primeFunctions;
     console.log(pr.isPrime(13));    //true
