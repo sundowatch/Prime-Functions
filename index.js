@@ -48,7 +48,7 @@ primeFunctions.nthPrime = (val, maxIterator = 99999999999) => {
     } else {
         var res = false;
         for (var i = 3; i <= maxIterator; i += 2) {
-            if (this.isPrime(i)) {
+            if (primeFunctions.isPrime(i)) {
                 counter += 1;
                 if (counter == val) {
                     res = i;
@@ -61,13 +61,13 @@ primeFunctions.nthPrime = (val, maxIterator = 99999999999) => {
 }
 
 primeFunctions.indexOfPrime = (val) => { // 0 is first index
-    if (!this.isPrime(val))
+    if (!primeFunctions.isPrime(val))
         return false;
     else {
         var i = 1;
         var res;
         while (true) {
-            if (this.nthPrime(i) == val) {
+            if (primeFunctions.nthPrime(i) == val) {
                 res = i;
                 break;
             }
@@ -80,7 +80,7 @@ primeFunctions.indexOfPrime = (val) => { // 0 is first index
 primeFunctions.nthPrimesSum = (...args) => {
     var sum = 0;
     for (var i = 0; i < args.length; i++) {
-        sum += this.nthPrime(args[i]);
+        sum += primeFunctions.nthPrime(args[i]);
     }
     return sum;
 }
@@ -88,56 +88,56 @@ primeFunctions.nthPrimesSum = (...args) => {
 primeFunctions.nthPrimesTimes = (...args) => {
     var times = 1;
     for (var i = 0; i < args.length; i++) {
-        times *= this.nthPrime(args[i]);
+        times *= primeFunctions.nthPrime(args[i]);
     }
     return times;
 }
 
 primeFunctions.nextPrime = (val) => {
-    if (!this.isPrime(val))
+    if (!primeFunctions.isPrime(val))
         return false;
     else {
         var counter = 1;
         var stopCounter;
         while (1 == 1) {
-            var currPrime = this.nthPrime(counter);
+            var currPrime = primeFunctions.nthPrime(counter);
             if (currPrime == val) {
                 stopCounter = counter;
                 break;
             } else
                 counter += 1;
         }
-        return this.nthPrime(stopCounter + 1);
+        return primeFunctions.nthPrime(stopCounter + 1);
     }
 }
 
 primeFunctions.prevPrime = (val) => {
-    if (!this.isPrime(val) || val == 2)
+    if (!primeFunctions.isPrime(val) || val == 2)
         return false;
     else {
         var counter = 1;
         var stopCounter;
         while (1 == 1) {
-            var currPrime = this.nthPrime(counter);
+            var currPrime = primeFunctions.nthPrime(counter);
             if (currPrime == val) {
                 stopCounter = counter;
                 break;
             } else
                 counter += 1;
         }
-        return this.nthPrime(stopCounter - 1);
+        return primeFunctions.nthPrime(stopCounter - 1);
     }
 }
 
 primeFunctions.primeSmallerThan = (val) => {
-    if (this.isPrime(val)) {
-        return this.prevPrime(val);
+    if (primeFunctions.isPrime(val)) {
+        return primeFunctions.prevPrime(val);
     } else {
         var i = 1;
         var res;
         while (1 == 1) {
-            if (val < this.nthPrime(i + 1) && val > this.nthPrime(i)) {
-                res = this.nthPrime(i);
+            if (val < primeFunctions.nthPrime(i + 1) && val > primeFunctions.nthPrime(i)) {
+                res = primeFunctions.nthPrime(i);
                 break;
             }
             i += 1;
@@ -147,14 +147,14 @@ primeFunctions.primeSmallerThan = (val) => {
 }
 
 primeFunctions.primeBiggerThan = (val) => {
-    if (this.isPrime(val))
-        return this.nextPrime(val);
+    if (primeFunctions.isPrime(val))
+        return primeFunctions.nextPrime(val);
     else {
         var i = 1;
         var res;
         while (1 == 1) {
-            if (val > this.nthPrime(i) && val < this.nthPrime(i + 1)) {
-                res = this.nthPrime(i + 1);
+            if (val > primeFunctions.nthPrime(i) && val < primeFunctions.nthPrime(i + 1)) {
+                res = primeFunctions.nthPrime(i + 1);
                 break;
             }
             i += 1;
@@ -164,14 +164,14 @@ primeFunctions.primeBiggerThan = (val) => {
 }
 
 primeFunctions.primeDivisors = (val) => {
-    if (this.isPrime(val))
+    if (primeFunctions.isPrime(val))
         return false; //Prime
     else {
         var arr = [];
         if (val % 2 == 0)
             arr.push(2);
         for (var i = 3; i < val; i += 2) {
-            if (this.isPrime(i) && val % i == 0)
+            if (primeFunctions.isPrime(i) && val % i == 0)
                 arr.push(i);
         }
         return arr;
@@ -179,10 +179,10 @@ primeFunctions.primeDivisors = (val) => {
 }
 
 primeFunctions.primeDivisorsSum = (val) => {
-    if (this.isPrime(val))
+    if (primeFunctions.isPrime(val))
         return false;
     else {
-        var pD = this.primeDivisors(val);
+        var pD = primeFunctions.primeDivisors(val);
         var res = 0;
         for (let i = 0; i < pD.length; i++) {
             res += pD[i];
@@ -192,10 +192,10 @@ primeFunctions.primeDivisorsSum = (val) => {
 }
 
 primeFunctions.primeDivisorsTimes = (val) => {
-    if (this.isPrime(val))
+    if (primeFunctions.isPrime(val))
         return false;
     else {
-        var pD = this.primeDivisors(val);
+        var pD = primeFunctions.primeDivisors(val);
         var res = 1;
         for (let i = 0; i < pD.length; i++) {
             res *= pD[i];
@@ -205,11 +205,11 @@ primeFunctions.primeDivisorsTimes = (val) => {
 }
 
 primeFunctions.isMersennePrime = (val) => {
-    if (!this.isPrime(val))
+    if (!primeFunctions.isPrime(val))
         return false;
     else {
         val = val + 1;
-        let primeDiv = this.primeDivisors(val);
+        let primeDiv = primeFunctions.primeDivisors(val);
         if (primeDiv.length == 1 && primeDiv[0] === 2)
             return true;
         else
@@ -222,7 +222,7 @@ primeFunctions.nthMersennePrime = (val, maxIterator = 99999999999) => { // 0 is 
     let res = false;
     for (let i = 1; i < maxIterator; i++) {
         let curr = Math.pow(2, i) - 1;
-        if (this.isPrime(curr)) {
+        if (primeFunctions.isPrime(curr)) {
             counter += 1;
             if (counter == val) {
                 res = curr;
@@ -235,7 +235,7 @@ primeFunctions.nthMersennePrime = (val, maxIterator = 99999999999) => { // 0 is 
 }
 
 primeFunctions.nthMersennePrimeExponents = (val, maxIterator = 99999999999) => {
-    let mersenne = this.nthMersennePrime(val, maxIterator);
+    let mersenne = primeFunctions.nthMersennePrime(val, maxIterator);
     mersenne = mersenne + 1;
     let i = 0;
     let stop = false;
@@ -255,18 +255,18 @@ primeFunctions.nthMersennePrimeExponents = (val, maxIterator = 99999999999) => {
 }
 
 primeFunctions.isPrimeOrDivisors = (val) => {
-    if (this.isPrime(val))
+    if (primeFunctions.isPrime(val))
         return true;
     else
-        return this.primeDivisors(val);
+        return primeFunctions.primeDivisors(val);
 }
 
 primeFunctions.primesSmallerThan = (val) => {
     var i = 1;
     var res = [];
     while (1 == 1) {
-        res.push(this.nthPrime(i));
-        if (val < this.nthPrime(i + 1) && val > this.nthPrime(i)) {
+        res.push(primeFunctions.nthPrime(i));
+        if (val < primeFunctions.nthPrime(i + 1) && val > primeFunctions.nthPrime(i)) {
             break;
         }
         i += 1;
@@ -278,13 +278,13 @@ primeFunctions.closestPrime = (val) => {
     let bigger = false;
     let smaller = false;
     for (let i = val + 1; i < Math.pow(val, 3); i++) {
-        if (this.isPrime(i)) {
+        if (primeFunctions.isPrime(i)) {
             bigger = i;
             break;
         }
     }
     for (let j = val - 1; j > 1; j--) {
-        if (this.isPrime(j)) {
+        if (primeFunctions.isPrime(j)) {
             smaller = j;
             break;
         }
@@ -305,7 +305,7 @@ primeFunctions.closestPrime = (val) => {
 
 primeFunctions.randomPrime = (minVal = 2, maxVal = 9999999999999999) => {
     let rnd = Math.floor(Math.random() * (maxVal - minVal)) + minVal;
-    rnd = this.closestPrime(rnd);
+    rnd = primeFunctions.closestPrime(rnd);
     return rnd;
 }
 
@@ -319,13 +319,13 @@ primeFunctions.randomPrimeDigits = (digit) => {
 
     a = parseInt(a);
     b = parseInt(b);
-    let prime = this.randomPrime(a, b);
+    let prime = primeFunctions.randomPrime(a, b);
     return prime;
 
 }
 
 primeFunctions.whatWillThisPrimeBe = (val) => {
-    if (this.isPrime(val)) {
+    if (primeFunctions.isPrime(val)) {
         let arr = [
             "It'll communicate with you",
             "It'll be lucky for you",
@@ -343,9 +343,9 @@ primeFunctions.nextNPrimes = (minVal, n) => {
     let it;
     for (var i = 0; i < n; i++) {
         if (i == 0) {
-            it = this.primeBiggerThan(minVal);
+            it = primeFunctions.primeBiggerThan(minVal);
         } else {
-            it = this.nextPrime(it);
+            it = primeFunctions.nextPrime(it);
         }
         primes.push(it);
     }
@@ -357,9 +357,9 @@ primeFunctions.prevNPrimes = (maxVal, n) => {
     let it;
     for (var i = n; i > 0; i--) {
         if (i == n) {
-            it = this.primeSmallerThan(maxVal);
+            it = primeFunctions.primeSmallerThan(maxVal);
         } else {
-            it = this.prevPrime(it);
+            it = primeFunctions.prevPrime(it);
         }
         primes.push(it);
     }
@@ -381,11 +381,11 @@ primeFunctions.primesBetween = (p1, p2) => {
     }
     if (check) {
         let res = [];
-        let first = this.primeBiggerThan(start);
+        let first = primeFunctions.primeBiggerThan(start);
         res.push(first);
         let contin = true;
         while (contin) {
-            first = this.nextPrime(first);
+            first = primeFunctions.nextPrime(first);
             if (first >= finish) {
                 contin = false;
                 break;
@@ -406,7 +406,7 @@ primeFunctions.firstNPrimes = (n) => {
         let next = 2;
         for (i = 1; i <= n; i++) {
             primes.push(next);
-            next = this.nextPrime(next);
+            next = primeFunctions.nextPrime(next);
         }
         return primes;
     }
@@ -437,7 +437,7 @@ primeFunctions.remainDividedBy = (number, division) => {
 }
 
 primeFunctions.beautifyInteger = (number) => {
-    let len = this.digits(number);
+    let len = primeFunctions.digits(number);
     let str = String(number).split('');
     str = str.reverse();
     let res = '';
@@ -473,7 +473,7 @@ primeFunctions.isEmirp = (number) => {
     let reverse = String(number).split('');
     reverse = reverse.reverse();
     reverse = parseInt(reverse.join(''));
-    if (this.isPrime(number) && this.isPrime(reverse))
+    if (primeFunctions.isPrime(number) && primeFunctions.isPrime(reverse))
         return true;
     else
         return false;
@@ -485,7 +485,7 @@ primeFunctions.nthEmirp = (n) => {
     let counter = 0;
     let res;
     while (stop) {
-        if (this.isEmirp(i)) {
+        if (primeFunctions.isEmirp(i)) {
             counter += 1;
             if (counter == n) {
                 res = i;
@@ -500,13 +500,13 @@ primeFunctions.nthEmirp = (n) => {
 }
 
 primeFunctions.hasTwinPrime = (prime, returnItsTwin = true) => {
-    if (!this.isPrime(prime))
+    if (!primeFunctions.isPrime(prime))
         return false;
-    else if (this.isPrime(prime - 2) || this.isPrime(prime + 2)) {
+    else if (primeFunctions.isPrime(prime - 2) || primeFunctions.isPrime(prime + 2)) {
         if (returnItsTwin) {
-            if (this.isPrime(prime - 2) && this.isPrime(prime + 2))
+            if (primeFunctions.isPrime(prime - 2) && primeFunctions.isPrime(prime + 2))
                 return [prime - 2, prime + 2];
-            else if (this.isPrime(prime - 2))
+            else if (primeFunctions.isPrime(prime - 2))
                 return prime - 2;
             else
                 return prime + 2;
@@ -527,8 +527,8 @@ primeFunctions.factorial = (number) => {
 primeFunctions.wilsonsTheorem = (n, returnWithExplanation = true) => {
     let res = '';
     let res2;
-    if (this.isPrime(n + 1) && this.factorial(n) % (n + 1) === n) {
-        res2 = ((this.factorial(n) % (n + 1)) / n) * (n - 1) + 2;
+    if (primeFunctions.isPrime(n + 1) && primeFunctions.factorial(n) % (n + 1) === n) {
+        res2 = ((primeFunctions.factorial(n) % (n + 1)) / n) * (n - 1) + 2;
     } else
         res2 = false;
     if (returnWithExplanation) {
@@ -573,7 +573,7 @@ primeFunctions.integerToArray = (number) => {
 }
 
 primeFunctions.firstNDigits = (number, n, returnAsInteger = true) => {
-    let res = this.integerToArray(number);
+    let res = primeFunctions.integerToArray(number);
     if (returnAsInteger)
         return parseInt(res.slice(0, n).join(''));
     else
@@ -581,7 +581,7 @@ primeFunctions.firstNDigits = (number, n, returnAsInteger = true) => {
 }
 
 primeFunctions.lastNDigits = (number, n, returnAsInteger = true) => {
-    let res = this.integerToArray(number);
+    let res = primeFunctions.integerToArray(number);
     if (returnAsInteger)
         return parseInt(res.slice(res.length - n, res.length).join(''));
     else
@@ -589,29 +589,29 @@ primeFunctions.lastNDigits = (number, n, returnAsInteger = true) => {
 }
 
 primeFunctions.reverseNumber = (number) => {
-    let res = this.integerToArray(number);
+    let res = primeFunctions.integerToArray(number);
     res = res.reverse();
     res = res.join('');
     return parseInt(res);
 }
 
 primeFunctions.isTruncatable = (prime) => {
-    if (!this.isPrime(prime)) {
+    if (!primeFunctions.isPrime(prime)) {
         return false;
     } else if (prime == 2 || prime == 3 || prime == 5 || prime == 7) {
         return false;
     } else {
         let res = true;
-        for (let i = 1; i <= this.digits(prime); i++) {
-            if (!this.isPrime(this.firstNDigits(prime, i))) {
+        for (let i = 1; i <= primeFunctions.digits(prime); i++) {
+            if (!primeFunctions.isPrime(primeFunctions.firstNDigits(prime, i))) {
                 res = false;
                 break;
             }
         }
         if (res) {
-            for (let i = 1; i <= this.digits(prime); i++) {
-                let rev = this.lastNDigits(prime, i);
-                if (!this.isPrime(rev)) {
+            for (let i = 1; i <= primeFunctions.digits(prime); i++) {
+                let rev = primeFunctions.lastNDigits(prime, i);
+                if (!primeFunctions.isPrime(rev)) {
                     res = false;
                     break;
                 }
@@ -622,19 +622,19 @@ primeFunctions.isTruncatable = (prime) => {
 }
 
 primeFunctions.truncatableValues = (prime) => {
-    if (this.isTruncatable(prime)) {
+    if (primeFunctions.isTruncatable(prime)) {
         let res = {
             leftToRight: [],
             rightToLeft: []
         };
-        for (let i = 1; i <= this.digits(prime); i++) {
-            if (this.isPrime(this.firstNDigits(prime, i))) {
-                res.leftToRight.push(this.firstNDigits(prime, i));
+        for (let i = 1; i <= primeFunctions.digits(prime); i++) {
+            if (primeFunctions.isPrime(primeFunctions.firstNDigits(prime, i))) {
+                res.leftToRight.push(primeFunctions.firstNDigits(prime, i));
             }
         }
-        for (let i = 1; i <= this.digits(prime); i++) {
-            let rev = this.lastNDigits(prime, i);
-            if (this.isPrime(rev)) {
+        for (let i = 1; i <= primeFunctions.digits(prime); i++) {
+            let rev = primeFunctions.lastNDigits(prime, i);
+            if (primeFunctions.isPrime(rev)) {
                 res.rightToLeft.push(rev);
             }
         }
@@ -648,10 +648,10 @@ primeFunctions.nthTruncatablePrime = (n) => {
     let primeCounter = 1;
     let res;
     while (counter != n) {
-        if (this.isTruncatable(this.nthPrime(primeCounter))) {
+        if (primeFunctions.isTruncatable(primeFunctions.nthPrime(primeCounter))) {
             counter += 1;
             if (counter == n) {
-                res = this.nthPrime(primeCounter);
+                res = primeFunctions.nthPrime(primeCounter);
                 break;
             }
         }
@@ -661,10 +661,10 @@ primeFunctions.nthTruncatablePrime = (n) => {
 }
 
 primeFunctions.isPandigitalPrime = (number) => {
-    if (!this.isPrime(number))
+    if (!primeFunctions.isPrime(number))
         return false;
     else {
-        let numArr = this.integerToArray(number);
+        let numArr = primeFunctions.integerToArray(number);
         let res = true;
         for (let i = 0; i < numArr.length; i++) {
             let newArr = numArr.splice(i, 1);

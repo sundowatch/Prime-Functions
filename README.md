@@ -22,7 +22,7 @@ On that matter we've built a library to create and find prime numbers
 const pr = require('prime-functions');
 ```
 
-You can simply the use ```prime-functions``` on the client side:
+You can simply use the ```prime-functions``` on the client side:
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/sundowatch/prime-functions/index.min.js"></script>
@@ -31,6 +31,10 @@ You can simply the use ```prime-functions``` on the client side:
     console.log(pr.isPrime(13));    //true
 </script>
 ```
+
+## Playground
+
+You can play with functions on [prime-functions.truncgil.com/](http://prime-functions.truncgil.com/)
 
 ## Functions
 - Main Functions
