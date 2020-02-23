@@ -41,20 +41,24 @@ primeFunctions.isPrimeOld = (val) => {
     return res;
 }
 
-primeFunctions.nthPrime = (val, maxIterator = 99999999999) => {
+primeFunctions.nthPrime = (val) => {
     let counter = 1;
     if (val == 1) {
         return 2;
     } else {
         var res = false;
-        for (var i = 3; i <= maxIterator; i += 2) {
+        let loop = true;
+        let i = 3;
+        while(loop){
             if (primeFunctions.isPrime(i)) {
                 counter += 1;
-                if (counter == val) {
+                if (counter === val) {
                     res = i;
+                    loop = false;
                     break;
                 }
             }
+            i+=2;
         }
         return res;
     }
@@ -217,25 +221,28 @@ primeFunctions.isMersennePrime = (val) => {
     }
 }
 
-primeFunctions.nthMersennePrime = (val, maxIterator = 99999999999) => { // 0 is first
+primeFunctions.nthMersennePrime = (val) => { // 0 is first
     let counter = 0;
     let res = false;
-    for (let i = 1; i < maxIterator; i++) {
+    let loop = true;
+    let i = 1;
+    while(loop){
         let curr = Math.pow(2, i) - 1;
         if (primeFunctions.isPrime(curr)) {
             counter += 1;
             if (counter == val) {
                 res = curr;
+                loop = false;
                 break;
             }
         }
-
+        i+=1;
     }
     return res;
 }
 
-primeFunctions.nthMersennePrimeExponents = (val, maxIterator = 99999999999) => {
-    let mersenne = primeFunctions.nthMersennePrime(val, maxIterator);
+primeFunctions.nthMersennePrimeExponents = (val) => {
+    let mersenne = primeFunctions.nthMersennePrime(val);
     mersenne = mersenne + 1;
     let i = 0;
     let stop = false;

@@ -13,6 +13,12 @@ On that matter we've built a library to create and find prime numbers
 - Some special prime arrays
 - Relations with normal integers
 
+## Playground
+
+You can play with the functions on [prime-functions.truncgil.com](http://prime-functions.truncgil.com/)
+
+![](https://prime-functions.truncgil.com/prm.png)
+
 ## Installation
 <pre>npm install prime-functions</pre>
 
@@ -31,10 +37,6 @@ You can simply use the ```prime-functions``` on the client side:
     console.log(pr.isPrime(13));    //true
 </script>
 ```
-
-## Playground
-
-You can play with functions on [prime-functions.truncgil.com](http://prime-functions.truncgil.com/)
 
 ## Functions
 - Main Functions
