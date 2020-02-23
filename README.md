@@ -26,6 +26,7 @@ You can play with the functions on [prime-functions.truncgil.com](http://prime-f
 
 ```javascript
 const pr = require('prime-functions');
+console.log(pr.isPrime(13));  //true
 ```
 
 You can simply use the ```prime-functions``` on the client side:

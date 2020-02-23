@@ -1,6 +1,6 @@
 {
   "name": "prime-functions",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Advanced Prime Numbers Functions. All functions that you need. Generate primes and process with prime numbers",
   "main": "index.js",
   "scripts": {
