@@ -57,7 +57,6 @@ You can simply use the ```prime-functions``` on the client side:
     - [primesSmallerThan](#closestprimenumber)
     - [closestPrime](#isprimenumber)
     - [randomPrime](#randomprimeminval-maxval)
-    - [whatWillThisPrimeBe](#whatwillthisprimebeprimenumber)
     - [nextNPrimes](#nextnprimesminval-n)
     - [prevNPrimes](#prevnprimesnumber)
     - [primesBetween](#primesbetweennumber1-number2)
@@ -174,10 +173,6 @@ let result = pr.closestPrime(25);    // 23
 #### randomPrime(minVal, maxVal)
 ```javascript
 let result = pr.randomPrime(25, 48);    // 31
-```
-#### whatWillThisPrimeBe(primeNumber)
-```javascript
-let result = pr.whatWillThisPrimeBe(23);    // It'll strengthen you
 ```
 #### nextNPrimes(minVal, n)
 ```javascript
