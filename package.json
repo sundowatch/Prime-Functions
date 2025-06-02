@@ -1,6 +1,6 @@
 {
   "name": "prime-functions",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Advanced Prime Numbers Functions. All functions that you need. Generate primes and process with prime numbers",
   "main": "index.js",
   "scripts": {
@@ -30,7 +30,7 @@
     "pi",
     "generate"
   ],
-  "author": ["Ümit Tunç", "İbrahim Sanduvac"],
+  "author": ["İbrahim Sanduvac"],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/sundowatch/prime-functions/issues"
