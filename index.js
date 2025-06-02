@@ -9,26 +9,157 @@ primeFunctions.printExecutionTime = () => {
     }, primeFunctions.simulateTime)
 }
 
-primeFunctions.isPrime = (val) => {
-    if (val == 1)
-        return false;
-    else if (val == 2)
+primeFunctions.isPrime = (
+    val,
+    minDigitsForMillerRabin = 7,
+    millerRabinRounds = undefined,
+    forceMillerRabin = false,
+    forceClassic = false
+) => {
+
+    // For small numbers (< 2^53) auto-convert to Number for classic speed; else use BigInt
+    let n;
+    if (typeof val === 'bigint') n = val;
+    else if (typeof val === 'number' && Number.isSafeInteger(val)) n = val;
+    else if (/^\d+$/.test(val)) {
+        // For string input; decide based on length
+        if (val.length <= 15) n = Number(val);
+        else n = BigInt(val);
+    } else {
+        n = BigInt(val);
+    }
+
+    // Calculate digit count (leading sign is stripped)
+    const digitCount = String(n).replace(/^[-+]/, '').length;
+
+    // Recommended Miller-Rabin rounds table
+    function getRecommendedMRRounds(dCount) {
+        if (dCount <= 20) return 7;
+        if (dCount <= 50) return 15;
+        if (dCount <= 100) return 30;
+        return 50;
+    }
+    const usedRounds = millerRabinRounds ?? getRecommendedMRRounds(digitCount);
+
+    // Classic primality test with 6k±1 step
+    function classicPrimeTest(n) {
+        let isBig = (typeof n === 'bigint');
+        const two = isBig ? 2n : 2, three = isBig ? 3n : 3;
+        if (n < two) return false;
+        if (n === two) return true;
+        if (n % two === 0) return false;
+        if (n === three) return true;
+        if (n % three === 0) return false;
+
+        // Pre-check some small primes for fast exclusion
+        const smallPrimes = isBig ?
+            [5n, 7n, 11n, 13n, 17n, 19n] :
+            [5, 7, 11, 13, 17, 19];
+
+        for (const p of smallPrimes) {
+            if (n === p) return true;
+            if (n % p === 0) return false;
+        }
+        // 6k ± 1 optimization
+        let sqrtN = isBig ? bigIntSqrt(n) : Math.floor(Math.sqrt(n));
+        let i = isBig ? 5n : 5, step = isBig ? 2n : 2;
+        while (i <= sqrtN) {
+            if (n % i === 0) return false;
+            i += step;
+            step = (isBig ? 6n : 6) - step;
+        }
         return true;
-    else if (val % 2 == 0)
-        return false;
-    else if (val > 3 && val % 3 == 0 || val > 5 && val % 5 == 0 || val > 7 && val % 7 == 0 || val > 11 && val % 11 == 0 || val > 13 && val % 13 == 0 || val > 17 && val % 17 == 0 || val > 19 && val % 19 == 0)
-        return false;
-    else {
-        let res = true;
-        for (var i = 3; i <= Math.round(Math.sqrt(val)); i += 2) {
-            if (val % i == 0) {
-                res = false;
-                break;
-            }
+    }
+
+    // Newton's method for BigInt sqrt (can be globally used)
+    function bigIntSqrt(value) {
+        if (value < 0n) throw "negative input";
+        if (value < 2n) return value;
+        let x = value;
+        let y = (x + 1n) / 2n;
+        while (y < x) {
+            x = y;
+            y = (x + value / x) / 2n;
+        }
+        return x;
+    }
+
+    // Fast modular exponentiation for both Number and BigInt
+    function modPow(base, exp, mod) {
+        let res = (typeof base === 'bigint') ? 1n : 1;
+        while (exp > 0) {
+            if (exp % 2 === 1 || exp % 2n === 1n) res = (res * base) % mod;
+            exp = (typeof exp === 'bigint') ? exp / 2n : Math.floor(exp / 2);
+            base = (base * base) % mod;
         }
         return res;
     }
-}
+
+    // Helper to get deterministic bases for Miller-Rabin (valid for n < 2^64)
+    function getDeterministicBases(n) {
+        if (typeof n === 'bigint' ? n < 341550071728321n : n < 341550071728321) {
+            // https://miller-rabin.appspot.com/ and OEIS
+            return [2, 3, 5, 7, 11, 13, 17];
+        }
+        // For even larger n < 2^64
+        if (typeof n === 'bigint' ? n < 18446744073709551616n : n < 18446744073709551616) {
+            return [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+        }
+        return null; // should use probabilistic for larger n
+    }
+
+    // Miller-Rabin primality test, Number or BigInt
+    function millerRabinTest(n, rounds) {
+        const isBig = (typeof n === 'bigint');
+        const one = isBig ? 1n : 1, two = isBig ? 2n : 2, three = isBig ? 3n : 3;
+        if (n < two) return false;
+        if (n === two || n === three) return true;
+        if (n % two === 0) return false;
+
+        // Try deterministic for n < 2^64
+        const bases = getDeterministicBases(n);
+        let roundBases = bases;
+        if (!bases) {
+            // Large n: Use random bases between [2, n-2] (as BigInt or Number)
+            roundBases = [];
+            for (let i = 0; i < rounds; i++) {
+                if (isBig) {
+                    // Secure random BigInt base between 2 and n-2
+                    let bStr = (BigInt("2") + BigInt(Math.floor(Math.random() * Number(n-4n)))).toString();
+                    roundBases.push(BigInt(bStr));
+                } else {
+                    roundBases.push(2 + Math.floor(Math.random() * (n - 3)));
+                }
+            }
+        }
+        // Write n-1 as d*2^r
+        let d = n - one;
+        let r = 0;
+        while (d % two === 0) {
+            d = d / two;
+            r++;
+        }
+        outer: for (const a of roundBases) {
+            let base = isBig ? BigInt(a) : a;
+            if (base >= n) continue;
+            let x = modPow(base, d, n);
+            if (x === one || x === n - one) continue;
+            for (let j = 1; j < r; j++) {
+                x = modPow(x, two, n);
+                if (x === n - one) continue outer;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    // Main logic: method selection
+    if (forceMillerRabin) return millerRabinTest(n, usedRounds);
+    if (forceClassic) return classicPrimeTest(n);
+    if (digitCount >= minDigitsForMillerRabin) return millerRabinTest(n, usedRounds);
+    else return classicPrimeTest(n);
+
+};
 
 primeFunctions.isPrimeOld = (val) => {
     res = true;
