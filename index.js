@@ -462,20 +462,6 @@ primeFunctions.randomPrimeDigits = (digit) => {
 
 }
 
-primeFunctions.whatWillThisPrimeBe = (val) => {
-    if (primeFunctions.isPrime(val)) {
-        let arr = [
-            "It'll communicate with you",
-            "It'll be lucky for you",
-            "It'll strengthen you",
-            "It'll make you happy"
-        ];
-        var kal = val % arr.length;
-        return arr[kal - 1];
-    } else
-        return false;
-}
-
 primeFunctions.nextNPrimes = (minVal, n) => {
     let primes = [];
     let it;
@@ -841,7 +827,6 @@ if (typeof exports !== 'undefined') {
     module.exports.closestPrime = primeFunctions.closestPrime;
     module.exports.randomPrime = primeFunctions.randomPrime;
     module.exports.randomPrimeDigits = primeFunctions.randomPrimeDigits;
-    module.exports.whatWillThisPrimeBe = primeFunctions.whatWillThisPrimeBe;
     module.exports.nextNPrimes = primeFunctions.nextNPrimes;
     module.exports.prevNPrimes = primeFunctions.prevNPrimes;
     module.exports.primesBetween = primeFunctions.primesBetween;
