@@ -1,6 +1,6 @@
 # Prime Functions (Useful Prime Numbers Functions)
 
-![](https://dev.truncgil.com/prime-logo-180x180.png)
+![](https://dev.elexron.com/prime-logo-180x180.png)
 
 Primes are of the utmost importance to number theorists because they are the building blocks of whole numbers, and important to the world because their odd mathematical properties make them perfect for our current uses.
 On that matter we've built a library to create and find prime numbers
@@ -15,9 +15,9 @@ On that matter we've built a library to create and find prime numbers
 
 ## Playground
 
-You can play with the functions on [prime-functions.truncgil.com](http://prime-functions.truncgil.com/)
+You can play with the functions on [prime.elexron.com](http://prime.elexron.com/)
 
-![](https://prime-functions.truncgil.com/prm.png)
+![](https://prime.elexron.com/prm.png)
 
 ## Installation
 <pre>npm install prime-functions</pre>
