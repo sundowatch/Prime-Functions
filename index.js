@@ -44,12 +44,13 @@ function bigIntSqrt(value) {
 // benchmark, not just estimated.
 function classicPrimeTest(n) {
     let isBig = (typeof n === 'bigint');
+    const zero = isBig ? 0n : 0;
     const two = isBig ? 2n : 2, three = isBig ? 3n : 3;
     if (n < two) return false;
     if (n === two) return true;
-    if (n % two === 0) return false;
+    if (n % two === zero) return false;
     if (n === three) return true;
-    if (n % three === 0) return false;
+    if (n % three === zero) return false;
 
     // Pre-check some small primes for fast exclusion
     const smallPrimes = isBig ?
@@ -58,13 +59,13 @@ function classicPrimeTest(n) {
 
     for (const p of smallPrimes) {
         if (n === p) return true;
-        if (n % p === 0) return false;
+        if (n % p === zero) return false;
     }
     // 6k ± 1 optimization
     let sqrtN = isBig ? bigIntSqrt(n) : Math.floor(Math.sqrt(n));
     let i = isBig ? 5n : 5, step = isBig ? 2n : 2;
     while (i <= sqrtN) {
-        if (n % i === 0) return false;
+        if (n % i === zero) return false;
         i += step;
         step = (isBig ? 6n : 6) - step;
     }
@@ -98,17 +99,22 @@ function millerRabinWitness(n, d, r, base) {
     return false;
 }
 
-// Deterministic Miller-Rabin bases, valid and PROVEN correct for n < 2^64.
+// Deterministic Miller-Rabin bases. Bounds and base sets per
+// https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
+// (verified against that source before adding the 41-base tier below --
+// the same 12-base set is NOT valid past 2^64, only past 2^64 with a 13th
+// base added does the proven range extend further).
 function getDeterministicBases(n) {
     if (n < 341550071728321n) {
-        // https://miller-rabin.appspot.com/ and OEIS
         return [2n, 3n, 5n, 7n, 11n, 13n, 17n];
     }
-    // For even larger n < 2^64
-    if (n < 18446744073709551616n) {
+    if (n < 18446744073709551616n) { // 2^64
         return [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n, 37n];
     }
-    return null; // no known deterministic base set beyond 2^64
+    if (n < 3317044064679887385961981n) { // ~3.3 * 10^24
+        return [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n, 37n, 41n];
+    }
+    return null; // no known deterministic base set beyond this
 }
 
 // Random BigInt base in [2, max-2]. Built up in 30-bit chunks instead of
@@ -289,6 +295,15 @@ primeFunctions.isPrime = (
     forceMillerRabin = false,
     forceClassic = false
 ) => {
+
+    // Reject anything that isn't a whole number up front, instead of letting
+    // it fall through to a raw BigInt(val) call that throws whatever
+    // SyntaxError/RangeError/TypeError the engine happens to pick for that
+    // input (Infinity, NaN, "12.5", null, undefined, {}, "abc", ...).
+    const isValidNumber = typeof val === 'number' && Number.isInteger(val);
+    const isValidBigInt = typeof val === 'bigint';
+    const isValidString = typeof val === 'string' && /^[+-]?\d+$/.test(val);
+    if (!isValidNumber && !isValidBigInt && !isValidString) return false;
 
     // For small numbers (< 2^53) auto-convert to Number for classic speed; else use BigInt
     let n;

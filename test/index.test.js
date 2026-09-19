@@ -11,6 +11,40 @@ test('isPrime - classic path (small numbers)', () => {
     assert.equal(pr.isPrime(-7), false);
 });
 
+test('isPrime - classic path on a literal BigInt composite (0 vs 0n regression)', () => {
+    // classicPrimeTest used to compare a BigInt modulo result against the
+    // Number literal 0 instead of 0n, so every divisibility check silently
+    // failed for BigInt input under the classic-test digit threshold.
+    assert.equal(pr.isPrime(9n), false);
+    assert.equal(pr.isPrime(21n), false);
+    assert.equal(pr.isPrime(999981n), false);
+    assert.equal(pr.isPrime(97n), true);
+    for (let i = 2; i <= 2000; i++) {
+        assert.equal(pr.isPrime(BigInt(i)), pr.isPrime(i), `mismatch at n=${i}`);
+    }
+});
+
+test('isPrime - deterministic Miller-Rabin extends correctly to the 13-base/41 tier', () => {
+    const TWO64 = 18446744073709551616n;
+    // largest known prime below 2^64
+    assert.equal(pr.isPrime(TWO64 - 59n), true);
+    // within the new tier (2^64 to ~3.3e24): a constructed composite with a
+    // small factor must still be caught
+    const composite = (TWO64 * 1000003n) + 3n; // divisible by 3
+    assert.equal(pr.isPrime(composite), false);
+});
+
+test('isPrime - invalid or non-integer input returns false instead of throwing', () => {
+    const invalidInputs = ['12.5', 12.5, '7.0', Infinity, -Infinity, NaN, 'Infinity', 'NaN', null, undefined, {}, 'abc', '', '  7'];
+    for (const v of invalidInputs) {
+        assert.equal(pr.isPrime(v), false, `expected false for ${JSON.stringify(v)}`);
+    }
+    // legitimate inputs are unaffected
+    assert.equal(pr.isPrime('+7'), true);
+    assert.equal(pr.isPrime('-7'), false);
+    assert.equal(pr.isPrime(13), true);
+});
+
 test('isPrime - Miller-Rabin path (7+ digit Number, BigInt, and numeric string)', () => {
     assert.equal(pr.isPrime(1000003), true);
     assert.equal(pr.isPrime(1000005), false);
