@@ -147,6 +147,38 @@ test('primeDivisors / primeDivisorsSum / primeDivisorsTimes', () => {
     assert.equal(pr.primeDivisors(13), false);
 });
 
+test('primeDivisors terminates on 0, 1 and negatives instead of looping forever', () => {
+    // n /= 2 on n === 0 never terminates; this regressed when primeDivisors
+    // switched to dividing factors out instead of scanning up to val.
+    assert.deepEqual(pr.primeDivisors(0), []);
+    assert.deepEqual(pr.primeDivisors(1), []);
+    assert.deepEqual(pr.primeDivisors(-4), [2]);
+    assert.deepEqual(pr.isPrimeOrDivisors(0), []);
+});
+
+test('primeDivisors factors values past 2^53 exactly, for BigInt and string input', () => {
+    const n = 13354124587972147317351777779793215477n;
+    const expected = [13n, 67n, 6714647n, 12998431n, 50582263n, 3472840952557n];
+    assert.deepEqual(pr.primeDivisors(n), expected);
+    assert.deepEqual(pr.primeDivisors(n.toString()), expected);
+    assert.equal(expected.reduce((a, b) => a * b, 1n), n); // squarefree here, so the product is n
+    assert.equal(pr.primeDivisorsTimes(n), n);
+
+    // a hard semiprime with no small factors still resolves via Pollard's rho
+    const semiprime = 99999999999973n * 99999999999959n;
+    assert.deepEqual(pr.primeDivisors(semiprime), [99999999999959n, 99999999999973n]);
+});
+
+test('isPrime and primeDivisors refuse Numbers that JavaScript already rounded', () => {
+    // 1.3354124587972147e+37 is not the number the caller wrote -- answering
+    // about it would be answering about a different number entirely.
+    assert.throws(() => pr.isPrime(13354124587972147317351777779793215477), RangeError);
+    assert.throws(() => pr.primeDivisors(13354124587972147317351777779793215477), RangeError);
+    // the exact same value as a BigInt or string is answered normally
+    assert.equal(pr.isPrime(13354124587972147317351777779793215477n), false);
+    assert.equal(pr.isPrime('13354124587972147317351777779793215477'), false);
+});
+
 test('isMersennePrime / nthMersennePrime / nthMersennePrimeExponents', () => {
     assert.equal(pr.isMersennePrime(127), true);
     assert.equal(pr.isMersennePrime(13), false);
@@ -154,6 +186,17 @@ test('isMersennePrime / nthMersennePrime / nthMersennePrimeExponents', () => {
     assert.equal(pr.nthMersennePrime(0), false);
     assert.equal(pr.nthMersennePrimeExponents(5), 13);
     assert.equal(pr.nthMersennePrimeExponents(0), false);
+});
+
+test('nthMersennePrime stays exact past 2^53 (Math.pow precision regression)', () => {
+    // orders 9 and 10 need more than 53 bits; Math.pow(2, i) - 1 could not
+    // represent them, and the old implementation hung searching for them.
+    assert.equal(pr.nthMersennePrime(8), 2147483647);
+    assert.equal(pr.nthMersennePrime(9), 2305843009213693951n);
+    assert.equal(pr.nthMersennePrime(10), 618970019642690137449562111n);
+    assert.equal(pr.nthMersennePrimeExponents(9), 61);
+    assert.equal(pr.nthMersennePrimeExponents(10), 89);
+    assert.equal(pr.isMersennePrime(2305843009213693951n), true);
 });
 
 test('primesBetween excludes numbers outside the open interval', () => {
@@ -220,8 +263,25 @@ test('wilsonsTheorem stays correct beyond factorial(20) precision limits', () =>
 test('phi / totient', () => {
     assert.equal(pr.phi(1), 1);
     assert.equal(pr.phi(10), 4);
-    assert.equal(pr.phi(36), 12);
+    assert.equal(pr.phi(36), 12); // 36 = 2^2 * 3^2, so multiplicity matters here
+    assert.equal(pr.phi(12), 4);
     assert.equal(pr.totient(5), 4);
+    assert.equal(pr.phi(97), 96); // prime: phi(p) = p - 1
+    // brute-force cross-check against the definition
+    for (let n = 1; n <= 300; n++) {
+        let count = 0;
+        const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+        for (let k = 1; k <= n; k++) if (gcd(n, k) === 1) count++;
+        assert.equal(pr.phi(n), count, `phi(${n})`);
+    }
+});
+
+test('phi stays exact for BigInt input past 2^53', () => {
+    const n = 13354124587972147317351777779793215477n;
+    // n is squarefree, so phi(n) = prod(p - 1) over its prime divisors
+    const expected = pr.primeDivisors(n).reduce((a, p) => a * (p - 1n), 1n);
+    assert.equal(pr.phi(n), expected);
+    assert.equal(pr.phi(2305843009213693951n), 2305843009213693950n); // prime
 });
 
 test('digits ignores sign and decimal point', () => {

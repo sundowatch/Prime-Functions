@@ -288,6 +288,116 @@ function millerRabinTest(nInput, rounds) {
     return true;
 }
 
+// Normalizes an integer-ish input to an exact BigInt.
+//
+// Returns null when the value isn't a whole number at all (NaN, Infinity,
+// 12.5, "abc", null, {}, ...), and THROWS for a Number that already exceeds
+// Number.MAX_SAFE_INTEGER. That last case matters: a literal like
+// 13354124587972147317351777779793215477 is silently rounded by JavaScript
+// itself before any library ever sees it, so answering a question about it
+// would mean confidently answering about a different number than the caller
+// wrote. A loud error pointing at BigInt/string input is the only honest
+// option there.
+function toExactBigInt(val, fnName) {
+    if (typeof val === 'bigint') return val;
+    if (typeof val === 'number') {
+        if (!Number.isInteger(val)) return null;
+        if (!Number.isSafeInteger(val)) {
+            throw new RangeError(
+                fnName + ': ' + val + ' is larger than Number.MAX_SAFE_INTEGER, so JavaScript ' +
+                'already rounded it to ' + BigInt(val) + ' before this call. Pass a BigInt ' +
+                '(e.g. 123n) or a string (e.g. "123") to keep every digit.'
+            );
+        }
+        return BigInt(val);
+    }
+    if (typeof val === 'string' && /^[+-]?\d+$/.test(val)) return BigInt(val);
+    return null;
+}
+
+function absBigInt(x) {
+    return x < 0n ? -x : x;
+}
+
+function gcdBigInt(a, b) {
+    a = absBigInt(a);
+    b = absBigInt(b);
+    while (b) {
+        const t = a % b;
+        a = b;
+        b = t;
+    }
+    return a;
+}
+
+// Pollard's rho, Brent's variant. Returns a nontrivial factor of composite n,
+// or null if this seed didn't find one. Trial division alone is hopeless past
+// ~16 digits (it needs sqrt(n) steps); this finds factors of a 28-digit hard
+// semiprime in a few seconds and of most real-world inputs instantly.
+function pollardRhoBrent(n, seed) {
+    if (n % 2n === 0n) return 2n;
+    if (n % 3n === 0n) return 3n;
+    let y = seed % n;
+    const c = (seed * 7n + 1n) % n;
+    const m = 128n;
+    let g = 1n, r = 1n, q = 1n, x = 0n, ys = 0n;
+    let guard = 0;
+    while (g === 1n) {
+        x = y;
+        for (let i = 0n; i < r; i++) y = ((y * y) % n + c) % n;
+        let k = 0n;
+        while (k < r && g === 1n) {
+            ys = y;
+            const lim = (m < r - k) ? m : r - k;
+            for (let i = 0n; i < lim; i++) {
+                y = ((y * y) % n + c) % n;
+                q = (q * absBigInt(x - y)) % n;
+            }
+            g = gcdBigInt(q, n);
+            k += m;
+        }
+        r *= 2n;
+        if (++guard > 2000) return null;
+    }
+    if (g === n) {
+        g = 1n;
+        while (g === 1n) {
+            ys = ((ys * ys) % n + c) % n;
+            g = gcdBigInt(absBigInt(x - ys), n);
+        }
+    }
+    return g === n ? null : g;
+}
+
+// Distinct prime factors of n (n >= 2), as sorted BigInts.
+function distinctPrimeFactorsBigInt(n) {
+    const found = new Set();
+    const stack = [n];
+    while (stack.length) {
+        const m = stack.pop();
+        if (m === 1n) continue;
+        if (primeFunctions.isPrime(m)) {
+            found.add(m.toString());
+            continue;
+        }
+        let split = false;
+        for (const p of [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n, 37n]) {
+            if (m % p === 0n) {
+                found.add(p.toString());
+                stack.push(m / p);
+                split = true;
+                break;
+            }
+        }
+        if (split) continue;
+        let d = null;
+        for (let seed = 2n; seed < 60n && !d; seed++) d = pollardRhoBrent(m, seed);
+        if (!d) throw new Error('primeDivisors: could not factor ' + m);
+        stack.push(d, m / d);
+    }
+    return [...found].map(BigInt).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+}
+
 primeFunctions.isPrime = (
     val,
     minDigitsForMillerRabin = 7,
@@ -296,26 +406,14 @@ primeFunctions.isPrime = (
     forceClassic = false
 ) => {
 
-    // Reject anything that isn't a whole number up front, instead of letting
-    // it fall through to a raw BigInt(val) call that throws whatever
-    // SyntaxError/RangeError/TypeError the engine happens to pick for that
-    // input (Infinity, NaN, "12.5", null, undefined, {}, "abc", ...).
-    const isValidNumber = typeof val === 'number' && Number.isInteger(val);
-    const isValidBigInt = typeof val === 'bigint';
-    const isValidString = typeof val === 'string' && /^[+-]?\d+$/.test(val);
-    if (!isValidNumber && !isValidBigInt && !isValidString) return false;
+    const exact = toExactBigInt(val, 'isPrime');
+    if (exact === null) return false;
 
-    // For small numbers (< 2^53) auto-convert to Number for classic speed; else use BigInt
+    // Stay in Number space while the value fits there -- the classic
+    // trial-division path is materially faster on Numbers than on BigInts.
     let n;
-    if (typeof val === 'bigint') n = val;
-    else if (typeof val === 'number' && Number.isSafeInteger(val)) n = val;
-    else if (/^\d+$/.test(val)) {
-        // For string input; decide based on length
-        if (val.length <= 15) n = Number(val);
-        else n = BigInt(val);
-    } else {
-        n = BigInt(val);
-    }
+    if (exact >= -9007199254740991n && exact <= 9007199254740991n) n = Number(exact);
+    else n = exact;
 
     // Calculate digit count (leading sign is stripped)
     const digitCount = String(n).replace(/^[-+]/, '').length;
@@ -386,7 +484,12 @@ primeFunctions.nextPrime = (val) => {
         return false;
     else {
         let i = val + 1;
-        while (!primeFunctions.isPrime(i)) i += 1;
+        while (!primeFunctions.isPrime(i)) {
+            i += 1;
+            // past this point Number arithmetic can no longer represent every
+            // integer, so walking further would be testing rounded values
+            if (i > Number.MAX_SAFE_INTEGER) return false;
+        }
         return i;
     }
 }
@@ -412,87 +515,99 @@ primeFunctions.primeSmallerThan = (val) => {
 
 primeFunctions.primeBiggerThan = (val) => {
     let i = Math.floor(val) + 1;
-    while (true) {
+    while (i <= Number.MAX_SAFE_INTEGER) {
         if (primeFunctions.isPrime(i)) return i;
         i += 1;
     }
+    return false;
 }
 
+// Distinct prime divisors of a composite (the convention ω(n) counts), so
+// primeDivisors(12) is [2, 3], not [2, 2, 3]. Returns false for a prime, per
+// this function's long-standing documented contract.
+//
+// The return element type mirrors the input type: a Number argument gives
+// Numbers back, a BigInt or string argument gives BigInts back, so a caller
+// working with values past 2^53 never silently receives rounded factors.
 primeFunctions.primeDivisors = (val) => {
-    if (primeFunctions.isPrime(val))
-        return false; //Prime
-    else {
-        let n = val;
-        let divisors = [];
-        if (n % 2 == 0) {
+    const exact = toExactBigInt(val, 'primeDivisors');
+    if (exact === null) return false;
+    const magnitude = absBigInt(exact);
+    if (magnitude < 2n) return []; // 0, 1, -1 have no prime divisors
+    if (primeFunctions.isPrime(magnitude)) return false; //Prime
+    const wantBigInt = typeof val !== 'number';
+
+    // Inside the safe-integer range plain Number arithmetic is exact and
+    // materially faster, so keep using it there.
+    if (magnitude <= 9007199254740991n) {
+        let n = Number(magnitude);
+        const divisors = [];
+        if (n % 2 === 0) {
             divisors.push(2);
-            while (n % 2 == 0) n /= 2;
+            while (n % 2 === 0) n /= 2;
         }
         for (let i = 3; i * i <= n; i += 2) {
-            if (n % i == 0) {
+            if (n % i === 0) {
                 divisors.push(i);
-                while (n % i == 0) n /= i;
+                while (n % i === 0) n /= i;
             }
         }
         if (n > 1) divisors.push(n);
-        return divisors;
+        return wantBigInt ? divisors.map(BigInt) : divisors;
     }
+
+    const divisors = distinctPrimeFactorsBigInt(magnitude);
+    return wantBigInt ? divisors : divisors.map(Number);
 }
 
 primeFunctions.primeDivisorsSum = (val) => {
-    if (primeFunctions.isPrime(val))
-        return false;
-    else {
-        var pD = primeFunctions.primeDivisors(val);
-        var res = 0;
-        for (let i = 0; i < pD.length; i++) {
-            res += pD[i];
-        }
-        return res;
-    }
+    const pD = primeFunctions.primeDivisors(val);
+    if (pD === false) return false;
+    if (pD.length === 0) return 0;
+    return pD.reduce((a, b) => a + b, typeof pD[0] === 'bigint' ? 0n : 0);
 }
 
 primeFunctions.primeDivisorsTimes = (val) => {
-    if (primeFunctions.isPrime(val))
-        return false;
-    else {
-        var pD = primeFunctions.primeDivisors(val);
-        var res = 1;
-        for (let i = 0; i < pD.length; i++) {
-            res *= pD[i];
-        }
-        return res;
-    }
+    const pD = primeFunctions.primeDivisors(val);
+    if (pD === false) return false;
+    if (pD.length === 0) return 1;
+    return pD.reduce((a, b) => a * b, typeof pD[0] === 'bigint' ? 1n : 1);
 }
 
 primeFunctions.isMersennePrime = (val) => {
-    if (!primeFunctions.isPrime(val))
-        return false;
-    else {
-        let m = val + 1;
-        while (m % 2 === 0) m /= 2;
-        return m === 1;
-    }
+    const exact = toExactBigInt(val, 'isMersennePrime');
+    if (exact === null) return false;
+    if (!primeFunctions.isPrime(exact)) return false;
+    let m = exact + 1n;
+    while (m % 2n === 0n) m /= 2n;
+    return m === 1n;
 }
 
+// Mersenne numbers are built as BigInt: Math.pow(2, i) - 1 stops being exact
+// once i passes 53, which silently produced wrong values for higher orders.
+// The result comes back as a Number while it fits in one, and as a BigInt
+// beyond that, so small orders keep returning exactly what they always did.
 primeFunctions.nthMersennePrime = (val) => { // 1 is first
     if (val < 1) return false;
     let counter = 0;
-    let i = 1;
+    let i = 1n;
     while (true) {
-        let curr = Math.pow(2, i) - 1;
+        const curr = (2n ** i) - 1n;
         if (primeFunctions.isPrime(curr)) {
             counter += 1;
-            if (counter === val) return curr;
+            if (counter === val) {
+                return curr <= 9007199254740991n ? Number(curr) : curr;
+            }
         }
-        i += 1;
+        i += 1n;
     }
 }
 
 primeFunctions.nthMersennePrimeExponents = (val) => {
-    let mersenne = primeFunctions.nthMersennePrime(val);
+    const mersenne = primeFunctions.nthMersennePrime(val);
     if (mersenne === false) return false;
-    return Math.round(Math.log2(mersenne + 1));
+    // exponent = number of bits in (mersenne + 1), exact at any size
+    return (BigInt(mersenne) + 1n).toString(2).length - 1;
 }
 
 primeFunctions.isPrimeOrDivisors = (val) => {
@@ -543,7 +658,7 @@ primeFunctions.primesSmallerThan = (val) => {
 primeFunctions.closestPrime = (val) => {
     let bigger = false;
     let smaller = false;
-    for (let i = val + 1; i < Math.pow(val, 3); i++) {
+    for (let i = val + 1; i < Math.pow(val, 3) && i <= Number.MAX_SAFE_INTEGER; i++) {
         if (primeFunctions.isPrime(i)) {
             bigger = i;
             break;
@@ -572,8 +687,8 @@ primeFunctions.closestPrime = (val) => {
 primeFunctions.randomPrime = (minVal = 2, maxVal = Number.MAX_SAFE_INTEGER) => {
     let rnd = Math.floor(Math.random() * (maxVal - minVal)) + minVal;
     let res = primeFunctions.closestPrime(rnd);
-    if (res < minVal) res = primeFunctions.primeBiggerThan(minVal - 1);
-    if (res > maxVal) res = primeFunctions.primeSmallerThan(maxVal + 1);
+    if (res === false || res < minVal) res = primeFunctions.primeBiggerThan(minVal - 1);
+    if (res !== false && res > maxVal) res = primeFunctions.primeSmallerThan(Math.min(maxVal, Number.MAX_SAFE_INTEGER - 1) + 1);
     return res;
 }
 
@@ -738,19 +853,27 @@ primeFunctions.wilsonsTheorem = (n, returnWithExplanation = true) => {
     }
 }
 
+// Euler's totient. Built on primeDivisors so it inherits the same
+// BigInt-correct factorization (including Pollard's rho for large input)
+// instead of running its own Number-only trial division, which silently
+// produced garbage past 2^53. Return type mirrors the input type.
 primeFunctions.phi = (n) => {
-    let result = n;
-    for (let p = 2; p * p <= n; p++) {
-        if (n % p == 0) {
-            while (n % p == 0) {
-                n = parseInt(n) / p;
-            }
-            result -= parseInt(result) / p;
-        }
+    const exact = toExactBigInt(n, 'phi');
+    if (exact === null) return false;
+    if (exact < 1n) return 0;
+    const wantBigInt = typeof n !== 'number';
+    if (exact === 1n) return wantBigInt ? 1n : 1;
+
+    let factors;
+    if (primeFunctions.isPrime(exact)) factors = [exact];
+    else factors = primeFunctions.primeDivisors(exact).map(BigInt);
+
+    // phi(n) = n * prod( (p-1)/p ) over distinct primes p | n
+    let result = exact;
+    for (const p of factors) {
+        result = result / p * (p - 1n);
     }
-    if (n > 1)
-        result -= parseInt(result) / n;
-    return result;
+    return wantBigInt ? result : Number(result);
 }
 
 primeFunctions.totient = primeFunctions.phi;

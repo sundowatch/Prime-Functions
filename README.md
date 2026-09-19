@@ -39,6 +39,35 @@ You can simply use the ```prime-functions``` on the client side:
 </script>
 ```
 
+## Working with large numbers
+
+JavaScript's `Number` can only hold integers exactly up to `Number.MAX_SAFE_INTEGER`
+(9007199254740991, about 9×10¹⁵). Beyond that a plain number literal is **silently
+rounded by JavaScript itself**, before any library sees it:
+
+```javascript
+const n = 13354124587972147317351777779793215477;   // no 'n' suffix
+console.log(BigInt(n));  // 13354124587972148371836662641938399232  <- a different number!
+```
+
+So for anything past 9×10¹⁵, pass a **BigInt** or a **string**:
+
+```javascript
+pr.isPrime(13354124587972147317351777779793215477n);    // BigInt  -> false
+pr.isPrime("13354124587972147317351777779793215477");   // string  -> false
+
+pr.primeDivisors("13354124587972147317351777779793215477");
+// [ 13n, 67n, 6714647n, 12998431n, 50582263n, 3472840952557n ]
+```
+
+`isPrime`, `primeDivisors`, `primeDivisorsSum`, `primeDivisorsTimes`,
+`isPrimeOrDivisors`, `phi`/`totient` and `isMersennePrime` all accept Number,
+BigInt and string input. They **throw a `RangeError`** if you hand them a
+`Number` that has already lost precision, rather than quietly answering a
+question about a different number. The values they return mirror the input
+type: a Number argument gives Numbers back, a BigInt or string argument gives
+BigInts back.
+
 ## Functions
 - Main Functions
     - [isPrime](#isprimenumber)
@@ -135,16 +164,28 @@ let result = pr.primeSmallerThan(100);    // 97
 let result = pr.primeBiggerThan(100);    // 101
 ```
 #### primeDivisors(nonPrimeNumber)
+The **distinct** prime divisors, the set ω(n) counts — so repeated factors appear once.
+Returns `false` for a prime, and `[]` for 0, 1 and -1.
 ```javascript
 let result = pr.primeDivisors(42);    // [2,3,7]
+let result = pr.primeDivisors(12);    // [2,3]   - 12 = 2^2 x 3, not [2,2,3]
+let result = pr.primeDivisors(13);    // false   - 13 is prime
+```
+Large values are factored with Pollard's rho, so they resolve in milliseconds:
+```javascript
+pr.primeDivisors("13354124587972147317351777779793215477");
+// [ 13n, 67n, 6714647n, 12998431n, 50582263n, 3472840952557n ]
 ```
 #### primeDivisorsSum(nonPrimeNumber)
 ```javascript
 let result = pr.primeDivisorsSum(42);    // 2 + 3 + 7 = 12
 ```
 #### primeDivisorsTimes(nonPrimeNumber)
+The product of the distinct prime divisors — the [radical](https://en.wikipedia.org/wiki/Radical_of_an_integer) rad(n).
+It equals n only when n is squarefree.
 ```javascript
 let result = pr.primeDivisorsTimes(42);    // 2 * 3 * 7 = 42
+let result = pr.primeDivisorsTimes(12);    // 2 * 3 = 6, not 12
 ```
 #### isMersennePrime(primeNumber)
 Checks if a prime is a [Mersenne Prime](https://en.wikipedia.org/wiki/Mersenne_prime)
@@ -152,9 +193,11 @@ Checks if a prime is a [Mersenne Prime](https://en.wikipedia.org/wiki/Mersenne_p
 let result = pr.isMersennePrime(127);    // true
 ```
 #### nthMersennePrime(order)
-Get nth [Mersenne Prime](https://en.wikipedia.org/wiki/Mersenne_prime)
+Get nth [Mersenne Prime](https://en.wikipedia.org/wiki/Mersenne_prime).
+Returns a Number while the result fits in one, and a BigInt beyond that.
 ```javascript
 let result = pr.nthMersennePrime(5);    // 8191
+let result = pr.nthMersennePrime(9);    // 2305843009213693951n  (2^61 - 1)
 ```
 #### nthMersennePrimeExponents(order)
 Get nth [Mersenne Prime](https://en.wikipedia.org/wiki/Mersenne_prime)'s exponents
