@@ -463,18 +463,30 @@ primeFunctions.indexOfPrime = (val) => { // 0 is first index
     }
 }
 
+// Resolves several prime indexes in a single pass. Calling nthPrime(i) once
+// per argument re-derives the whole sequence from scratch every time, which
+// turns the natural "first N primes" call into O(N^2); generating the list
+// once and indexing into it does the same job in one sweep.
+function nthPrimesByIndex(indexes) {
+    let maxIndex = 0;
+    for (const i of indexes) if (i > maxIndex) maxIndex = i;
+    if (maxIndex < 1) return indexes.map(() => false);
+    const primes = primeFunctions.firstNPrimes(maxIndex);
+    return indexes.map(i => (i >= 1 && i <= primes.length) ? primes[i - 1] : false);
+}
+
 primeFunctions.nthPrimesSum = (...args) => {
     var sum = 0;
-    for (var i = 0; i < args.length; i++) {
-        sum += primeFunctions.nthPrime(args[i]);
+    for (const p of nthPrimesByIndex(args)) {
+        sum += p;
     }
     return sum;
 }
 
 primeFunctions.nthPrimesTimes = (...args) => {
     var times = 1;
-    for (var i = 0; i < args.length; i++) {
-        times *= primeFunctions.nthPrime(args[i]);
+    for (const p of nthPrimesByIndex(args)) {
+        times *= p;
     }
     return times;
 }
@@ -655,48 +667,74 @@ primeFunctions.primesSmallerThan = (val) => {
     return primesUpTo(Math.ceil(val) - 1);
 }
 
+// Walks in BigInt so it keeps working past 2^53; the result comes back as a
+// Number when the argument was one, so Number callers see no change.
 primeFunctions.closestPrime = (val) => {
-    let bigger = false;
-    let smaller = false;
-    for (let i = val + 1; i < Math.pow(val, 3) && i <= Number.MAX_SAFE_INTEGER; i++) {
-        if (primeFunctions.isPrime(i)) {
-            bigger = i;
-            break;
-        }
+    const exact = toExactBigInt(val, 'closestPrime');
+    if (exact === null) return false;
+    const asNumber = typeof val !== 'bigint';
+
+    let bigger = null;
+    for (let i = exact + 1n; ; i++) {
+        if (primeFunctions.isPrime(i)) { bigger = i; break; }
     }
-    for (let j = val - 1; j > 1; j--) {
-        if (primeFunctions.isPrime(j)) {
-            smaller = j;
-            break;
-        }
+    let smaller = null;
+    for (let j = exact - 1n; j > 1n; j--) {
+        if (primeFunctions.isPrime(j)) { smaller = j; break; }
     }
+
     let res;
-    if (!bigger)
-        res = smaller;
-    else if (!smaller)
-        res = bigger;
-    else if (bigger - val == val - smaller) {
-        res = bigger;
-    } else if (bigger - val < val - smaller) {
-        res = bigger;
-    } else
-        res = smaller;
-    return res;
+    if (smaller === null) res = bigger;
+    else if (bigger - exact <= exact - smaller) res = bigger; // ties go to the larger prime
+    else res = smaller;
+    return asNumber ? Number(res) : res;
+}
+
+// Uniform-ish random BigInt in [min, max], built in 30-bit chunks so it stays
+// exact past 2^53 (Math.random alone tops out well below that).
+function randomBigIntInRange(min, max) {
+    const range = max - min + 1n;
+    const bits = range.toString(2).length;
+    let r = 0n;
+    for (let b = 0; b < bits; b += 30) {
+        r = (r << 30n) | BigInt(Math.floor(Math.random() * (1 << 30)));
+    }
+    return min + (r % range);
 }
 
 primeFunctions.randomPrime = (minVal = 2, maxVal = Number.MAX_SAFE_INTEGER) => {
-    let rnd = Math.floor(Math.random() * (maxVal - minVal)) + minVal;
-    let res = primeFunctions.closestPrime(rnd);
-    if (res === false || res < minVal) res = primeFunctions.primeBiggerThan(minVal - 1);
-    if (res !== false && res > maxVal) res = primeFunctions.primeSmallerThan(Math.min(maxVal, Number.MAX_SAFE_INTEGER - 1) + 1);
-    return res;
+    const lo = toExactBigInt(minVal, 'randomPrime');
+    const hi = toExactBigInt(maxVal, 'randomPrime');
+    if (lo === null || hi === null) return false;
+    const low = lo < 2n ? 2n : lo;
+    if (hi < low) return false;
+    const asNumber = typeof minVal !== 'bigint' && typeof maxVal !== 'bigint';
+
+    // Walk up from a random point, wrapping to the bottom of the range, so the
+    // result is always inside [minVal, maxVal] -- the old version snapped to
+    // the closest prime and could land outside it.
+    const start = randomBigIntInRange(low, hi);
+    let found = null;
+    for (let i = start; i <= hi; i++) {
+        if (primeFunctions.isPrime(i)) { found = i; break; }
+    }
+    if (found === null) {
+        for (let i = low; i < start; i++) {
+            if (primeFunctions.isPrime(i)) { found = i; break; }
+        }
+    }
+    if (found === null) return false;
+    return asNumber ? Number(found) : found;
 }
 
 primeFunctions.randomPrimeDigits = (digit) => {
     if (digit < 1) return false;
-    let a = Math.max(2, Math.pow(10, digit - 1));
-    let b = Math.pow(10, digit) - 1;
-    return primeFunctions.randomPrime(a, b);
+    // 10^(digit-1) overflows Number precision past 16 digits, so bound in BigInt
+    const lo = digit === 1 ? 2n : 10n ** BigInt(digit - 1);
+    const hi = (10n ** BigInt(digit)) - 1n;
+    const result = primeFunctions.randomPrime(lo, hi);
+    if (result === false) return false;
+    return result <= 9007199254740991n ? Number(result) : result;
 }
 
 primeFunctions.nextNPrimes = (minVal, n) => {
@@ -753,22 +791,41 @@ primeFunctions.firstNPrimes = (n) => {
     }
 }
 
-primeFunctions.digits = (val) => {
-    return String(Math.trunc(Math.abs(val))).length;
+// The digit string of |val|, exact for BigInt and for Numbers past 2^53 --
+// String(1e21) is "1e+21", which would otherwise be counted as 5 digits.
+function digitStringOf(val) {
+    if (typeof val === 'bigint') return (val < 0n ? -val : val).toString();
+    if (typeof val === 'number') {
+        const t = Math.trunc(Math.abs(val));
+        if (!Number.isFinite(t)) return null;
+        return Number.isSafeInteger(t) ? String(t) : BigInt(t).toString();
+    }
+    const exact = toExactBigInt(val, 'digits');
+    if (exact === null) return null;
+    return (exact < 0n ? -exact : exact).toString();
 }
 
+primeFunctions.digits = (val) => {
+    const s = digitStringOf(val);
+    return s === null ? false : s.length;
+}
+
+// Accumulate in BigInt as soon as any element is one, so these compose with
+// the BigInt arrays primeDivisors returns for large input.
 primeFunctions.sum = (arr) => {
-    let res = 0;
+    const isBig = arr.some(v => typeof v === 'bigint');
+    let res = isBig ? 0n : 0;
     for (let i = 0; i < arr.length; i++) {
-        res += arr[i];
+        res += isBig ? BigInt(arr[i]) : arr[i];
     }
     return res;
 }
 
 primeFunctions.times = (arr) => {
-    let res = 1;
+    const isBig = arr.some(v => typeof v === 'bigint');
+    let res = isBig ? 1n : 1;
     for (let i = 0; i < arr.length; i++) {
-        res *= arr[i];
+        res *= isBig ? BigInt(arr[i]) : arr[i];
     }
     return res;
 }
@@ -778,7 +835,10 @@ primeFunctions.remainDividedBy = (number, division) => {
 }
 
 primeFunctions.beautifyInteger = (number) => {
-    return String(number).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const s = digitStringOf(number);
+    if (s === null) return String(number);
+    const sign = (typeof number === 'bigint' ? number < 0n : number < 0) ? '-' : '';
+    return sign + s.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
 primeFunctions.integerToText = (integer, language = 'en') => {
@@ -791,10 +851,12 @@ primeFunctions.integerToText = (integer, language = 'en') => {
 }
 
 primeFunctions.isEmirp = (number) => {
-    let reverse = parseInt(String(number).split('').reverse().join(''));
-    if (reverse === number)
+    const exact = toExactBigInt(number, 'isEmirp');
+    if (exact === null || exact < 0n) return false;
+    const reverse = BigInt(exact.toString().split('').reverse().join(''));
+    if (reverse === exact)
         return false; // palindromic primes are not emirps
-    return primeFunctions.isPrime(number) && primeFunctions.isPrime(reverse);
+    return primeFunctions.isPrime(exact) && primeFunctions.isPrime(reverse);
 }
 
 primeFunctions.nthEmirp = (n) => {
@@ -810,20 +872,20 @@ primeFunctions.nthEmirp = (n) => {
 }
 
 primeFunctions.hasTwinPrime = (prime, returnItsTwin = true) => {
-    if (!primeFunctions.isPrime(prime))
-        return false;
-    else if (primeFunctions.isPrime(prime - 2) || primeFunctions.isPrime(prime + 2)) {
-        if (returnItsTwin) {
-            if (primeFunctions.isPrime(prime - 2) && primeFunctions.isPrime(prime + 2))
-                return [prime - 2, prime + 2];
-            else if (primeFunctions.isPrime(prime - 2))
-                return prime - 2;
-            else
-                return prime + 2;
-        } else
-            return true;
-    } else
-        return false;
+    const exact = toExactBigInt(prime, 'hasTwinPrime');
+    if (exact === null) return false;
+    if (!primeFunctions.isPrime(exact)) return false;
+
+    const lower = exact - 2n;
+    const upper = exact + 2n;
+    const hasLower = primeFunctions.isPrime(lower);
+    const hasUpper = primeFunctions.isPrime(upper);
+    if (!hasLower && !hasUpper) return false;
+    if (!returnItsTwin) return true;
+
+    const out = (v) => typeof prime === 'bigint' ? v : Number(v);
+    if (hasLower && hasUpper) return [out(lower), out(upper)];
+    return hasLower ? out(lower) : out(upper);
 }
 
 primeFunctions.factorial = (number) => {
@@ -883,30 +945,37 @@ primeFunctions.integerToString = (number) => {
 }
 
 primeFunctions.integerToArray = (number) => {
-    return String(Math.trunc(Math.abs(number))).split('').map(d => parseInt(d));
+    const s = digitStringOf(number);
+    if (s === null) return false;
+    return s.split('').map(d => parseInt(d));
+}
+
+// Digits back to a value: a Number while it fits in one, a BigInt past that
+// (and always a BigInt when the caller passed one in).
+function digitsToValue(digitString, sourceValue) {
+    const asBig = BigInt(digitString === '' ? '0' : digitString);
+    if (typeof sourceValue === 'bigint') return asBig;
+    return asBig <= 9007199254740991n ? Number(asBig) : asBig;
 }
 
 primeFunctions.firstNDigits = (number, n, returnAsInteger = true) => {
-    let res = primeFunctions.integerToArray(number);
-    if (returnAsInteger)
-        return parseInt(res.slice(0, n).join(''));
-    else
-        return res.slice(0, n).join('');
+    const res = primeFunctions.integerToArray(number);
+    if (res === false) return false;
+    const slice = res.slice(0, n).join('');
+    return returnAsInteger ? digitsToValue(slice, number) : slice;
 }
 
 primeFunctions.lastNDigits = (number, n, returnAsInteger = true) => {
-    let res = primeFunctions.integerToArray(number);
-    if (returnAsInteger)
-        return parseInt(res.slice(res.length - n, res.length).join(''));
-    else
-        return res.slice(res.length - n, res.length).join('');
+    const res = primeFunctions.integerToArray(number);
+    if (res === false) return false;
+    const slice = res.slice(Math.max(0, res.length - n), res.length).join('');
+    return returnAsInteger ? digitsToValue(slice, number) : slice;
 }
 
 primeFunctions.reverseNumber = (number) => {
-    let res = primeFunctions.integerToArray(number);
-    res = res.reverse();
-    res = res.join('');
-    return parseInt(res);
+    const res = primeFunctions.integerToArray(number);
+    if (res === false) return false;
+    return digitsToValue(res.reverse().join(''), number);
 }
 
 primeFunctions.isTruncatable = (prime) => {
@@ -957,21 +1026,25 @@ primeFunctions.truncatableValues = (prime) => {
         return false;
 }
 
+// There are provably exactly 11 two-sided truncatable primes in base 10 --
+// 23, 37, 53, 73, 313, 317, 373, 797, 3137, 3797, 739397 (OEIS A020994) --
+// so there is nothing to find past the last one, and searching for a 12th
+// never terminates. Bounded here, and walking primes forward rather than
+// re-deriving nthPrime(counter) from scratch on every iteration.
+const LARGEST_TRUNCATABLE_PRIME = 739397;
+
 primeFunctions.nthTruncatablePrime = (n) => {
+    if (n < 1) return false;
     let counter = 0;
-    let primeCounter = 1;
-    let res;
-    while (counter != n) {
-        if (primeFunctions.isTruncatable(primeFunctions.nthPrime(primeCounter))) {
+    let candidate = 2;
+    while (candidate !== false && candidate <= LARGEST_TRUNCATABLE_PRIME) {
+        if (primeFunctions.isTruncatable(candidate)) {
             counter += 1;
-            if (counter == n) {
-                res = primeFunctions.nthPrime(primeCounter);
-                break;
-            }
+            if (counter === n) return candidate;
         }
-        primeCounter += 1;
+        candidate = primeFunctions.nextPrime(candidate);
     }
-    return res;
+    return false;
 }
 
 primeFunctions.isPandigitalPrime = (number) => {

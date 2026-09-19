@@ -315,6 +315,65 @@ test('isTruncatable / truncatableValues / nthTruncatablePrime', () => {
     assert.equal(pr.nthTruncatablePrime(10), 3797);
 });
 
+test('nthTruncatablePrime is bounded: exactly 11 exist, and it must not search past them', () => {
+    // 23, 37, 53, 73, 313, 317, 373, 797, 3137, 3797, 739397 (OEIS A020994) is
+    // the complete, proven list, so n >= 12 has no answer. The old loop kept
+    // searching forever, and re-derived nthPrime(counter) from scratch each
+    // iteration on top of that.
+    const all = [23, 37, 53, 73, 313, 317, 373, 797, 3137, 3797, 739397];
+    all.forEach((expected, i) => assert.equal(pr.nthTruncatablePrime(i + 1), expected));
+    assert.equal(pr.nthTruncatablePrime(12), false);
+    assert.equal(pr.nthTruncatablePrime(50), false);
+    assert.equal(pr.nthTruncatablePrime(0), false);
+});
+
+test('nthPrimesSum / nthPrimesTimes resolve every index in one pass', () => {
+    assert.equal(pr.nthPrimesSum(3, 5, 7), 33);
+    assert.equal(pr.nthPrimesTimes(3, 5, 7), 935);
+    // unsorted, duplicated and out-of-range indexes behave as before
+    assert.equal(pr.nthPrimesSum(7, 5, 3), 33);
+    assert.equal(pr.nthPrimesSum(5, 5, 5), 33);
+    assert.equal(pr.nthPrimesSum(1), 2);
+    // the natural "first N primes" call used to be O(N^2)
+    const args = Array.from({ length: 1000 }, (_, i) => i + 1);
+    assert.equal(pr.nthPrimesSum(...args), 3682913); // sum of the first 1000 primes
+});
+
+test('helpers accept BigInt and stay exact past 2^53', () => {
+    // sum/times compose with the BigInt arrays primeDivisors returns
+    const n = 13354124587972147317351777779793215477n;
+    assert.equal(pr.times(pr.primeDivisors(n)), n); // squarefree, so rad(n) === n
+    assert.equal(typeof pr.sum(pr.primeDivisors(n)), 'bigint');
+    assert.equal(pr.sum([2, 3, 4]), 9); // Number input still gives a Number
+    assert.equal(pr.times([2, 3, 4]), 24);
+
+    // isEmirp must not call a palindromic BigInt prime an emirp
+    assert.equal(pr.isEmirp(101n), false);
+    assert.equal(pr.isEmirp(13n), true);
+
+    assert.deepEqual(pr.hasTwinPrime(5n), [3n, 7n]);
+    assert.deepEqual(pr.hasTwinPrime(5), [3, 7]);
+
+    assert.equal(pr.digits(13n), 2);
+    assert.equal(pr.digits(1e21), 22); // String(1e21) is "1e+21", which reads as 5
+    assert.equal(pr.beautifyInteger(1e21), '1.000.000.000.000.000.000.000');
+    assert.deepEqual(pr.integerToArray(123n), [1, 2, 3]);
+    assert.equal(pr.reverseNumber(123456), 654321);
+
+    assert.equal(pr.closestPrime(100000000000000000n), 100000000000000003n);
+    assert.equal(pr.closestPrime(25), 23);
+});
+
+test('randomPrime stays inside the requested range, at any size', () => {
+    for (let i = 0; i < 25; i++) {
+        const v = pr.randomPrime(25, 48);
+        assert.ok(v >= 25 && v <= 48 && pr.isPrime(v), `${v} outside [25,48] or not prime`);
+    }
+    const big = pr.randomPrimeDigits(20);
+    assert.equal(String(big).length, 20);
+    assert.equal(pr.isPrime(big), true);
+});
+
 test('isPrimeOld matches isPrime on small inputs (boundary cases)', () => {
     assert.equal(pr.isPrimeOld(1), false);
     assert.equal(pr.isPrimeOld(0), false);

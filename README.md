@@ -60,13 +60,22 @@ pr.primeDivisors("13354124587972147317351777779793215477");
 // [ 13n, 67n, 6714647n, 12998431n, 50582263n, 3472840952557n ]
 ```
 
-`isPrime`, `primeDivisors`, `primeDivisorsSum`, `primeDivisorsTimes`,
-`isPrimeOrDivisors`, `phi`/`totient` and `isMersennePrime` all accept Number,
-BigInt and string input. They **throw a `RangeError`** if you hand them a
-`Number` that has already lost precision, rather than quietly answering a
-question about a different number. The values they return mirror the input
-type: a Number argument gives Numbers back, a BigInt or string argument gives
-BigInts back.
+Number, BigInt and string input are accepted by `isPrime`, `primeDivisors`,
+`primeDivisorsSum`, `primeDivisorsTimes`, `isPrimeOrDivisors`, `phi`/`totient`,
+`isMersennePrime`, `isEmirp`, `hasTwinPrime`, `closestPrime`, `randomPrime`,
+`digits`, `integerToArray`, `firstNDigits`, `lastNDigits`, `reverseNumber`,
+`beautifyInteger`, `sum` and `times`.
+
+These **throw a `RangeError`** if you hand them a `Number` that has already
+lost precision, rather than quietly answering a question about a different
+number. The values they return mirror the input type: a Number argument gives
+Numbers back, a BigInt or string argument gives BigInts back — so the pieces
+compose:
+
+```javascript
+const n = "13354124587972147317351777779793215477";
+pr.times(pr.primeDivisors(n)) === BigInt(n);   // true (n is squarefree)
+```
 
 ## Functions
 - Main Functions
@@ -403,10 +412,15 @@ pr.truncatableValues(3797);
 ```
 
 #### nthTruncatablePrime(n)
-Finds the nth [Truncatable Prime](https://en.wikipedia.org/wiki/Truncatable_prime)
+Finds the nth [Truncatable Prime](https://en.wikipedia.org/wiki/Truncatable_prime).
+There are exactly **11** two-sided truncatable primes in base 10 — 23, 37, 53, 73,
+313, 317, 373, 797, 3137, 3797, 739397 ([OEIS A020994](https://oeis.org/A020994)) —
+so anything past the 11th returns `false`.
 
 ```javascript
 pr.nthTruncatablePrime(10);   // 3797
+pr.nthTruncatablePrime(11);   // 739397  (the largest one)
+pr.nthTruncatablePrime(12);   // false   (no 12th exists)
 ```
 
 #### isPanditalPrime(n)
