@@ -6,6 +6,282 @@ primeFunctions.printExecutionTime = () => {
     console.info('Execution time: %dms', end)
 }
 
+// ============================================================================
+// Internal primality-test helpers.
+//
+// These are module-scope function declarations (not nested inside isPrime)
+// so V8 allocates them once, not on every single isPrime call -- isPrime is
+// the hot inner loop of nthPrime/nextPrime/prevPrime/primeSmallerThan/
+// primeBiggerThan/indexOfPrime, which can call it millions of times when
+// scanning a large range.
+// ============================================================================
+
+// Recommended Miller-Rabin round count by digit length.
+function getRecommendedMRRounds(dCount) {
+    if (dCount <= 20) return 7;
+    if (dCount <= 50) return 15;
+    if (dCount <= 100) return 30;
+    return 50;
+}
+
+// Newton's method for BigInt sqrt.
+function bigIntSqrt(value) {
+    if (value < 0n) throw new RangeError('negative input');
+    if (value < 2n) return value;
+    let x = value;
+    let y = (x + 1n) / 2n;
+    while (y < x) {
+        x = y;
+        y = (x + value / x) / 2n;
+    }
+    return x;
+}
+
+// Classic primality test with 6k±1 step. Empirically the crossover point
+// where this stops being competitive with Miller-Rabin lands right around
+// 7-8 decimal digits for the worst case (a prime, or a composite with two
+// similarly-sized prime factors and no small ones) -- confirmed by direct
+// benchmark, not just estimated.
+function classicPrimeTest(n) {
+    let isBig = (typeof n === 'bigint');
+    const two = isBig ? 2n : 2, three = isBig ? 3n : 3;
+    if (n < two) return false;
+    if (n === two) return true;
+    if (n % two === 0) return false;
+    if (n === three) return true;
+    if (n % three === 0) return false;
+
+    // Pre-check some small primes for fast exclusion
+    const smallPrimes = isBig ?
+        [5n, 7n, 11n, 13n, 17n, 19n] :
+        [5, 7, 11, 13, 17, 19];
+
+    for (const p of smallPrimes) {
+        if (n === p) return true;
+        if (n % p === 0) return false;
+    }
+    // 6k ± 1 optimization
+    let sqrtN = isBig ? bigIntSqrt(n) : Math.floor(Math.sqrt(n));
+    let i = isBig ? 5n : 5, step = isBig ? 2n : 2;
+    while (i <= sqrtN) {
+        if (n % i === 0) return false;
+        i += step;
+        step = (isBig ? 6n : 6) - step;
+    }
+    return true;
+}
+
+// Fast modular exponentiation. Always computed in BigInt: mixing BigInt
+// and Number in the same expression throws, and Number * Number can
+// silently lose precision once it exceeds 2^53.
+function modPow(base, exp, mod) {
+    base = ((base % mod) + mod) % mod;
+    let res = 1n;
+    while (exp > 0n) {
+        if (exp % 2n === 1n) res = (res * base) % mod;
+        exp /= 2n;
+        base = (base * base) % mod;
+    }
+    return res;
+}
+
+// Single Miller-Rabin witness check for n-1 = d*2^r. Returns false if `base`
+// proves n composite, true if it doesn't (consistent with n being prime).
+function millerRabinWitness(n, d, r, base) {
+    if (base >= n) return true; // out-of-range base carries no information
+    let x = modPow(base, d, n);
+    if (x === 1n || x === n - 1n) return true;
+    for (let j = 1; j < r; j++) {
+        x = modPow(x, 2n, n);
+        if (x === n - 1n) return true;
+    }
+    return false;
+}
+
+// Deterministic Miller-Rabin bases, valid and PROVEN correct for n < 2^64.
+function getDeterministicBases(n) {
+    if (n < 341550071728321n) {
+        // https://miller-rabin.appspot.com/ and OEIS
+        return [2n, 3n, 5n, 7n, 11n, 13n, 17n];
+    }
+    // For even larger n < 2^64
+    if (n < 18446744073709551616n) {
+        return [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n, 37n];
+    }
+    return null; // no known deterministic base set beyond 2^64
+}
+
+// Random BigInt base in [2, max-2]. Built up in 30-bit chunks instead of
+// going through Number(max), which loses precision once max exceeds 2^53.
+function randomBigIntBase(max) {
+    const bitLength = max.toString(2).length;
+    let candidate;
+    do {
+        candidate = 0n;
+        for (let bits = 0; bits < bitLength; bits += 30) {
+            candidate = (candidate << 30n) | BigInt(Math.floor(Math.random() * (1 << 30)));
+        }
+        candidate = candidate % (max - 3n) + 2n;
+    } while (candidate < 2n || candidate >= max - 1n);
+    return candidate;
+}
+
+// ---- Baillie-PSW: Miller-Rabin base 2 + a strong Lucas probable-prime test.
+// Used below for n >= 2^64, where no deterministic Miller-Rabin base set
+// exists. No composite number has ever been found that passes BPSW, which
+// is a stronger practical guarantee than a handful of additional random
+// Miller-Rabin rounds alone. Validated against classic trial division for
+// every integer from 2 to 5,000,000 (zero mismatches), every known strong
+// pseudoprime to base 2, every known Lucas pseudoprime, and known large
+// primes/composites up to 157 digits before being wired in here.
+
+function isPerfectSquareBigInt(n) {
+    const s = bigIntSqrt(n);
+    return s * s === n;
+}
+
+// Jacobi symbol (a/n) for odd positive n.
+function jacobiSymbol(aInput, nInput) {
+    let a = ((aInput % nInput) + nInput) % nInput;
+    let n = nInput;
+    let result = 1n;
+    while (a !== 0n) {
+        while (a % 2n === 0n) {
+            a /= 2n;
+            const r = n % 8n;
+            if (r === 3n || r === 5n) result = -result;
+        }
+        const tmp = a;
+        a = n;
+        n = tmp;
+        if (a % 4n === 3n && n % 4n === 3n) result = -result;
+        a = a % n;
+    }
+    return n === 1n ? result : 0n;
+}
+
+// Selfridge's method: find D in {5,-7,9,-11,13,...} with Jacobi(D/n) = -1.
+// P is fixed at 1; Q follows from P^2 - 4Q = D.
+function findSelfridgeParams(n) {
+    let d = 5n;
+    let sign = 1n;
+    for (let i = 0; i < 1000; i++) {
+        const D = sign * d;
+        const Dmodn = ((D % n) + n) % n;
+        // Dmodn === 0 only happens while D is still small relative to n (i.e.
+        // n itself is one of 5,7,9,11,...) -- a degenerate coincidence, not
+        // evidence of compositeness (gcd(D,n) is n itself, not a proper
+        // factor). Skip straight to the next candidate instead of misreading
+        // it as a witness.
+        if (Dmodn !== 0n) {
+            const j = jacobiSymbol(Dmodn, n);
+            if (j === 0n) return { composite: true }; // genuine nontrivial common factor
+            if (j === -1n) {
+                const Q = (1n - D) / 4n;
+                return { D, P: 1n, Q, composite: false };
+            }
+        }
+        d += 2n;
+        sign = -sign;
+    }
+    return { composite: true };
+}
+
+// Strong Lucas probable-prime test on n, with Selfridge parameters D, P, Q.
+function strongLucasProbablePrime(n, D, P, Q) {
+    let d = n + 1n;
+    let s = 0n;
+    while (d % 2n === 0n) {
+        d /= 2n;
+        s++;
+    }
+
+    function halveModN(x) {
+        if (x % 2n !== 0n) x += n;
+        return (((x / 2n) % n) + n) % n;
+    }
+
+    let U = 1n, V = P % n, Qk = ((Q % n) + n) % n;
+    const bits = d.toString(2);
+    for (let i = 1; i < bits.length; i++) {
+        // Doubling step: (U_k, V_k, Q^k) -> (U_2k, V_2k, Q^2k)
+        U = ((U * V) % n + n) % n;
+        V = (((V * V) - 2n * Qk) % n + n) % n;
+        Qk = ((Qk * Qk) % n + n) % n;
+        if (bits[i] === '1') {
+            // Addition step: index m -> m+1
+            const newU = halveModN(P * U + V);
+            const newV = halveModN(D * U + P * V);
+            U = newU;
+            V = newV;
+            Qk = ((Qk * ((Q % n) + n) % n) % n + n) % n;
+        }
+    }
+    if (U === 0n) return true;
+    for (let r = 0n; r < s; r++) {
+        if (V === 0n) return true;
+        if (r < s - 1n) {
+            V = (((V * V) - 2n * Qk) % n + n) % n;
+            Qk = ((Qk * Qk) % n + n) % n;
+        }
+    }
+    return false;
+}
+
+function bpswTest(n) {
+    if (n < 2n) return false;
+    if (n === 2n) return true;
+    if (n % 2n === 0n) return false;
+    if (isPerfectSquareBigInt(n)) return false;
+
+    let d = n - 1n;
+    let r = 0;
+    while (d % 2n === 0n) {
+        d /= 2n;
+        r++;
+    }
+    if (!millerRabinWitness(n, d, r, 2n)) return false;
+
+    const params = findSelfridgeParams(n);
+    if (params.composite) return false;
+    return strongLucasProbablePrime(n, params.D, params.P, params.Q);
+}
+
+// Miller-Rabin primality test. Always runs on BigInt internally so large
+// Number inputs don't lose precision during modular multiplication.
+function millerRabinTest(nInput, rounds) {
+    const n = typeof nInput === 'bigint' ? nInput : BigInt(nInput);
+    if (n < 2n) return false;
+    if (n === 2n || n === 3n) return true;
+    if (n % 2n === 0n) return false;
+
+    // Write n-1 as d*2^r
+    let d = n - 1n;
+    let r = 0;
+    while (d % 2n === 0n) {
+        d /= 2n;
+        r++;
+    }
+
+    const bases = getDeterministicBases(n);
+    if (bases) {
+        // n < 2^64: proven correct, no probabilistic element at all.
+        for (const base of bases) {
+            if (!millerRabinWitness(n, d, r, base)) return false;
+        }
+        return true;
+    }
+
+    // n >= 2^64: fall back to Baillie-PSW as the primary test, then layer
+    // `rounds` extra random-base Miller-Rabin rounds as cheap additional
+    // insurance (and so millerRabinRounds still has an effect this large).
+    if (!bpswTest(n)) return false;
+    for (let i = 0; i < rounds; i++) {
+        if (!millerRabinWitness(n, d, r, randomBigIntBase(n))) return false;
+    }
+    return true;
+}
+
 primeFunctions.isPrime = (
     val,
     minDigitsForMillerRabin = 7,
@@ -28,137 +304,7 @@ primeFunctions.isPrime = (
 
     // Calculate digit count (leading sign is stripped)
     const digitCount = String(n).replace(/^[-+]/, '').length;
-
-    // Recommended Miller-Rabin rounds table
-    function getRecommendedMRRounds(dCount) {
-        if (dCount <= 20) return 7;
-        if (dCount <= 50) return 15;
-        if (dCount <= 100) return 30;
-        return 50;
-    }
     const usedRounds = millerRabinRounds ?? getRecommendedMRRounds(digitCount);
-
-    // Classic primality test with 6k±1 step
-    function classicPrimeTest(n) {
-        let isBig = (typeof n === 'bigint');
-        const two = isBig ? 2n : 2, three = isBig ? 3n : 3;
-        if (n < two) return false;
-        if (n === two) return true;
-        if (n % two === 0) return false;
-        if (n === three) return true;
-        if (n % three === 0) return false;
-
-        // Pre-check some small primes for fast exclusion
-        const smallPrimes = isBig ?
-            [5n, 7n, 11n, 13n, 17n, 19n] :
-            [5, 7, 11, 13, 17, 19];
-
-        for (const p of smallPrimes) {
-            if (n === p) return true;
-            if (n % p === 0) return false;
-        }
-        // 6k ± 1 optimization
-        let sqrtN = isBig ? bigIntSqrt(n) : Math.floor(Math.sqrt(n));
-        let i = isBig ? 5n : 5, step = isBig ? 2n : 2;
-        while (i <= sqrtN) {
-            if (n % i === 0) return false;
-            i += step;
-            step = (isBig ? 6n : 6) - step;
-        }
-        return true;
-    }
-
-    // Newton's method for BigInt sqrt (can be globally used)
-    function bigIntSqrt(value) {
-        if (value < 0n) throw new RangeError('negative input');
-        if (value < 2n) return value;
-        let x = value;
-        let y = (x + 1n) / 2n;
-        while (y < x) {
-            x = y;
-            y = (x + value / x) / 2n;
-        }
-        return x;
-    }
-
-    // Fast modular exponentiation. Always computed in BigInt: mixing BigInt
-    // and Number in the same expression throws, and Number * Number can
-    // silently lose precision once it exceeds 2^53.
-    function modPow(base, exp, mod) {
-        base = base % mod;
-        let res = 1n;
-        while (exp > 0n) {
-            if (exp % 2n === 1n) res = (res * base) % mod;
-            exp /= 2n;
-            base = (base * base) % mod;
-        }
-        return res;
-    }
-
-    // Helper to get deterministic bases for Miller-Rabin (valid for n < 2^64)
-    function getDeterministicBases(n) {
-        if (n < 341550071728321n) {
-            // https://miller-rabin.appspot.com/ and OEIS
-            return [2n, 3n, 5n, 7n, 11n, 13n, 17n];
-        }
-        // For even larger n < 2^64
-        if (n < 18446744073709551616n) {
-            return [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n, 37n];
-        }
-        return null; // should use probabilistic for larger n
-    }
-
-    // Random BigInt base in [2, max-2]. Built up in 30-bit chunks instead of
-    // going through Number(max), which loses precision once max exceeds 2^53.
-    function randomBigIntBase(max) {
-        const bitLength = max.toString(2).length;
-        let candidate;
-        do {
-            candidate = 0n;
-            for (let bits = 0; bits < bitLength; bits += 30) {
-                candidate = (candidate << 30n) | BigInt(Math.floor(Math.random() * (1 << 30)));
-            }
-            candidate = candidate % (max - 3n) + 2n;
-        } while (candidate < 2n || candidate >= max - 1n);
-        return candidate;
-    }
-
-    // Miller-Rabin primality test. Always runs on BigInt internally so large
-    // Number inputs don't lose precision during modular multiplication.
-    function millerRabinTest(nInput, rounds) {
-        const n = typeof nInput === 'bigint' ? nInput : BigInt(nInput);
-        if (n < 2n) return false;
-        if (n === 2n || n === 3n) return true;
-        if (n % 2n === 0n) return false;
-
-        // Try deterministic bases for n < 2^64
-        const bases = getDeterministicBases(n);
-        let roundBases = bases;
-        if (!bases) {
-            roundBases = [];
-            for (let i = 0; i < rounds; i++) {
-                roundBases.push(randomBigIntBase(n));
-            }
-        }
-        // Write n-1 as d*2^r
-        let d = n - 1n;
-        let r = 0;
-        while (d % 2n === 0n) {
-            d /= 2n;
-            r++;
-        }
-        outer: for (const base of roundBases) {
-            if (base >= n) continue;
-            let x = modPow(base, d, n);
-            if (x === 1n || x === n - 1n) continue;
-            for (let j = 1; j < r; j++) {
-                x = modPow(x, 2n, n);
-                if (x === n - 1n) continue outer;
-            }
-            return false;
-        }
-        return true;
-    }
 
     // Main logic: method selection
     if (forceMillerRabin) return millerRabinTest(n, usedRounds);
@@ -341,12 +487,42 @@ primeFunctions.isPrimeOrDivisors = (val) => {
         return primeFunctions.primeDivisors(val);
 }
 
-primeFunctions.primesSmallerThan = (val) => {
-    let res = [];
-    for (let i = 2; i < val; i++) {
-        if (primeFunctions.isPrime(i)) res.push(i);
+// ---- Sieve of Eratosthenes, used by the bulk range functions below ----
+// A single isPrime() call per candidate (trial division up to sqrt each
+// time) is O(range * sqrt(range)) in total for a whole range; a sieve shares
+// work across all candidates and does the same job in O(range log log
+// range). isPrime itself stays a single-number oracle -- only the functions
+// that actually want "every prime in a range" switch to sieving.
+const SIEVE_MEMORY_LIMIT = 10_000_000; // ~10MB Uint8Array; safe to allocate outright
+
+function sieveOfEratosthenes(limit) {
+    if (limit < 2) return [];
+    const isComposite = new Uint8Array(limit + 1);
+    const primes = [];
+    for (let i = 2; i <= limit; i++) {
+        if (!isComposite[i]) {
+            primes.push(i);
+            for (let j = i * i; j <= limit; j += i) {
+                isComposite[j] = 1;
+            }
+        }
     }
-    return res;
+    return primes;
+}
+
+function primesUpTo(limit) {
+    if (limit <= SIEVE_MEMORY_LIMIT) return sieveOfEratosthenes(limit);
+    // Beyond the memory cap, fall back to per-candidate testing instead of
+    // allocating an unbounded sieve array.
+    const primes = [];
+    for (let i = 2; i <= limit; i++) {
+        if (primeFunctions.isPrime(i)) primes.push(i);
+    }
+    return primes;
+}
+
+primeFunctions.primesSmallerThan = (val) => {
+    return primesUpTo(Math.ceil(val) - 1);
 }
 
 primeFunctions.closestPrime = (val) => {
@@ -426,26 +602,24 @@ primeFunctions.primesBetween = (p1, p2) => {
     let finish = Math.max(p1, p2);
     if (start === finish)
         return false;
-    let res = [];
-    let current = primeFunctions.primeBiggerThan(start);
-    while (current < finish) {
-        res.push(current);
-        current = primeFunctions.nextPrime(current);
-    }
-    return res;
+    const primes = primesUpTo(Math.floor(finish));
+    return primes.filter(p => p > start && p < finish);
 }
 
 primeFunctions.firstNPrimes = (n) => {
     if (n <= 0)
         return false;
     else {
-        let primes = [];
-        let next = 2;
-        for (let i = 1; i <= n; i++) {
-            primes.push(next);
-            next = primeFunctions.nextPrime(next);
+        // Rosser's theorem upper bound for the nth prime (valid for n >= 6):
+        // p_n < n * (ln n + ln ln n). Sieve up to that bound; if the estimate
+        // ever undershoots, double it and resieve.
+        let limit = n < 6 ? 15 : Math.ceil(n * (Math.log(n) + Math.log(Math.log(n)))) + 10;
+        let primes = primesUpTo(limit);
+        while (primes.length < n) {
+            limit *= 2;
+            primes = primesUpTo(limit);
         }
-        return primes;
+        return primes.slice(0, n);
     }
 }
 

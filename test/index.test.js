@@ -22,10 +22,49 @@ test('isPrime - Miller-Rabin path (7+ digit Number, BigInt, and numeric string)'
     assert.equal(pr.isPrime(9007199254740881n + 2n), false);
 });
 
-test('isPrime - very large BigInt beyond deterministic base range (random-base Miller-Rabin)', () => {
+test('isPrime - very large BigInt beyond deterministic base range (Baillie-PSW path)', () => {
     const m127 = (2n ** 127n) - 1n; // known Mersenne prime
     assert.equal(pr.isPrime(m127, 7, 25, true), true);
     assert.equal(pr.isPrime(m127 - 2n, 7, 25, true), false);
+
+    // 157-digit Mersenne prime: exercises Baillie-PSW well beyond 2^64
+    const m521 = (2n ** 521n) - 1n;
+    assert.equal(pr.isPrime(m521), true);
+    assert.equal(pr.isPrime(m521 - 2n), false);
+
+    // A large product of two known large primes: guaranteed composite, no small factors
+    const bigComposite = ((2n ** 127n) - 1n) * ((2n ** 89n) - 1n);
+    assert.equal(pr.isPrime(bigComposite), false);
+});
+
+test('isPrime - Baillie-PSW correctly rejects known strong pseudoprimes to base 2', () => {
+    // These fool a bare Miller-Rabin base-2 test alone; the Lucas half of
+    // Baillie-PSW must still catch them. Forced through Miller-Rabin/BPSW
+    // via forceMillerRabin since they're small enough to normally take the
+    // classic trial-division path (which would also catch them, just not
+    // via the code path this test targets).
+    const strongPseudoprimesBase2 = [2047n, 3277n, 4033n, 4681n, 8321n, 15841n, 29341n, 90751n];
+    for (const p of strongPseudoprimesBase2) {
+        assert.equal(pr.isPrime(p, 7, 5, true), false, `${p} should be composite`);
+    }
+});
+
+test('isPrime - Baillie-PSW correctly rejects known Lucas pseudoprimes', () => {
+    // These fool a Lucas test alone; the Miller-Rabin base-2 half must catch them.
+    const lucasPseudoprimes = [323n, 377n, 1159n, 1829n, 5459n, 5777n, 9071n, 9179n];
+    for (const p of lucasPseudoprimes) {
+        assert.equal(pr.isPrime(p, 7, 5, true), false, `${p} should be composite`);
+    }
+});
+
+test('isPrime - Baillie-PSW agrees with classic trial division for every integer up to 200,000', () => {
+    for (let n = 2; n <= 200000; n++) {
+        assert.equal(
+            pr.isPrime(BigInt(n), 7, 5, true),
+            pr.isPrime(n, 99, undefined, false, true),
+            `mismatch at n=${n}`
+        );
+    }
 });
 
 test('nthPrime / indexOfPrime', () => {
@@ -57,6 +96,13 @@ test('primesSmallerThan does not hang when val is prime or tiny', () => {
     assert.deepEqual(pr.primesSmallerThan(25), [2, 3, 5, 7, 11, 13, 17, 19, 23]);
     assert.deepEqual(pr.primesSmallerThan(23), [2, 3, 5, 7, 11, 13, 17, 19]);
     assert.deepEqual(pr.primesSmallerThan(2), []);
+});
+
+test('sieve-backed bulk functions match known prime-counting values', () => {
+    // pi(999999) = 78498 (OEIS A000720)
+    assert.equal(pr.primesSmallerThan(1000000).length, 78498);
+    assert.equal(pr.firstNPrimes(10000)[9999], 104729); // the 10000th prime
+    assert.equal(pr.primesBetween(1, 100).length, 25); // 25 primes below 100
 });
 
 test('primeDivisors / primeDivisorsSum / primeDivisorsTimes', () => {
