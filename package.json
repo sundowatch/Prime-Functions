@@ -3,8 +3,11 @@
   "version": "1.2.4",
   "description": "Advanced Prime Numbers Functions. All functions that you need. Generate primes and process with prime numbers",
   "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "repository": {
     "type": "git",
@@ -30,7 +33,7 @@
     "pi",
     "generate"
   ],
-  "author": ["İbrahim Sanduvac"],
+  "author": "İbrahim Sanduvac",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/sundowatch/prime-functions/issues"

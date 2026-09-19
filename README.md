@@ -57,6 +57,7 @@ You can simply use the ```prime-functions``` on the client side:
     - [primesSmallerThan](#closestprimenumber)
     - [closestPrime](#isprimenumber)
     - [randomPrime](#randomprimeminval-maxval)
+    - [randomPrimeDigits](#randomprimedigitsdigit)
     - [nextNPrimes](#nextnprimesminval-n)
     - [prevNPrimes](#prevnprimesnumber)
     - [primesBetween](#primesbetweennumber1-number2)
@@ -174,6 +175,11 @@ let result = pr.closestPrime(25);    // 23
 ```javascript
 let result = pr.randomPrime(25, 48);    // 31
 ```
+#### randomPrimeDigits(digit)
+Returns a random prime with exactly `digit` digits
+```javascript
+let result = pr.randomPrimeDigits(3);    // e.g. 863 (a random 3-digit prime)
+```
 #### nextNPrimes(minVal, n)
 ```javascript
 let result = pr.nextNPrimes(25, 5);    // [ 29, 31, 37, 41, 43 ]
@@ -244,7 +250,7 @@ pr.integerToString(1234567890);    // '1234567890'
 #### integerToArray(number)
 helper function
 ```javascript
-pr.integerToArray(1234567890);    // ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
+pr.integerToArray(1234567890);    // [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
 ```
 
 #### firstNDigits(number, n, returnAsInteger=true)
@@ -272,17 +278,17 @@ pr.isEmirp(19);    // false
 ```
 
 #### nthEmirp(number)
-returns nth emirp. 1 is the 11 
+returns nth emirp (an emirp is a prime that becomes a *different* prime when its digits are reversed; palindromic primes like 11 or 101 don't count). 1 is 13
 ```javascript
-pr.nthEmirp(2);    // 13
-pr.nthEmirp(5);    // 37
+pr.nthEmirp(1);    // 13
+pr.nthEmirp(4);    // 37
 ```
 
 #### hasTwinPrime(number, returnItsTwin=true)
 check if the prime has a twin
 ```javascript
 pr.hasTwinPrime(3);    // 5
-pr.hasTwinPrime(5);    // [5, 7]
+pr.hasTwinPrime(5);    // [3, 7] (5 sits between two twin-prime pairs: 3 and 7)
 pr.hasTwinPrime(311);   // 313
 pr.hasTwinPrime(3, false);   // True
 pr.hasTwinPrime(37);    // false
@@ -337,7 +343,7 @@ Check if the given number is [Truncatable Prime](https://en.wikipedia.org/wiki/T
 ```javascript
 pr.isTruncatable(3797); //true
 pr.isTruncatable(373);  //true
-pr.isTruncatable(23);   //false
+pr.isTruncatable(11);   //false (single-digit truncation isn't prime on both sides)
 ```
 
 #### truncatableValues(number)

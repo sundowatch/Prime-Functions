@@ -1,12 +1,9 @@
-let primeFunctions = {};
+var primeFunctions = {};
 
 let start = new Date();
-primeFunctions.simulateTime = 5;
 primeFunctions.printExecutionTime = () => {
-    setTimeout(function (argument) {
-        let end = new Date() - start;
-        console.info('Execution time: %dms', end)
-    }, primeFunctions.simulateTime)
+    let end = new Date() - start;
+    console.info('Execution time: %dms', end)
 }
 
 primeFunctions.isPrime = (
@@ -73,7 +70,7 @@ primeFunctions.isPrime = (
 
     // Newton's method for BigInt sqrt (can be globally used)
     function bigIntSqrt(value) {
-        if (value < 0n) throw "negative input";
+        if (value < 0n) throw new RangeError('negative input');
         if (value < 2n) return value;
         let x = value;
         let y = (x + 1n) / 2n;
@@ -84,12 +81,15 @@ primeFunctions.isPrime = (
         return x;
     }
 
-    // Fast modular exponentiation for both Number and BigInt
+    // Fast modular exponentiation. Always computed in BigInt: mixing BigInt
+    // and Number in the same expression throws, and Number * Number can
+    // silently lose precision once it exceeds 2^53.
     function modPow(base, exp, mod) {
-        let res = (typeof base === 'bigint') ? 1n : 1;
-        while (exp > 0) {
-            if (exp % 2 === 1 || exp % 2n === 1n) res = (res * base) % mod;
-            exp = (typeof exp === 'bigint') ? exp / 2n : Math.floor(exp / 2);
+        base = base % mod;
+        let res = 1n;
+        while (exp > 0n) {
+            if (exp % 2n === 1n) res = (res * base) % mod;
+            exp /= 2n;
             base = (base * base) % mod;
         }
         return res;
@@ -97,56 +97,63 @@ primeFunctions.isPrime = (
 
     // Helper to get deterministic bases for Miller-Rabin (valid for n < 2^64)
     function getDeterministicBases(n) {
-        if (typeof n === 'bigint' ? n < 341550071728321n : n < 341550071728321) {
+        if (n < 341550071728321n) {
             // https://miller-rabin.appspot.com/ and OEIS
-            return [2, 3, 5, 7, 11, 13, 17];
+            return [2n, 3n, 5n, 7n, 11n, 13n, 17n];
         }
         // For even larger n < 2^64
-        if (typeof n === 'bigint' ? n < 18446744073709551616n : n < 18446744073709551616) {
-            return [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+        if (n < 18446744073709551616n) {
+            return [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n, 37n];
         }
         return null; // should use probabilistic for larger n
     }
 
-    // Miller-Rabin primality test, Number or BigInt
-    function millerRabinTest(n, rounds) {
-        const isBig = (typeof n === 'bigint');
-        const one = isBig ? 1n : 1, two = isBig ? 2n : 2, three = isBig ? 3n : 3;
-        if (n < two) return false;
-        if (n === two || n === three) return true;
-        if (n % two === 0) return false;
+    // Random BigInt base in [2, max-2]. Built up in 30-bit chunks instead of
+    // going through Number(max), which loses precision once max exceeds 2^53.
+    function randomBigIntBase(max) {
+        const bitLength = max.toString(2).length;
+        let candidate;
+        do {
+            candidate = 0n;
+            for (let bits = 0; bits < bitLength; bits += 30) {
+                candidate = (candidate << 30n) | BigInt(Math.floor(Math.random() * (1 << 30)));
+            }
+            candidate = candidate % (max - 3n) + 2n;
+        } while (candidate < 2n || candidate >= max - 1n);
+        return candidate;
+    }
 
-        // Try deterministic for n < 2^64
+    // Miller-Rabin primality test. Always runs on BigInt internally so large
+    // Number inputs don't lose precision during modular multiplication.
+    function millerRabinTest(nInput, rounds) {
+        const n = typeof nInput === 'bigint' ? nInput : BigInt(nInput);
+        if (n < 2n) return false;
+        if (n === 2n || n === 3n) return true;
+        if (n % 2n === 0n) return false;
+
+        // Try deterministic bases for n < 2^64
         const bases = getDeterministicBases(n);
         let roundBases = bases;
         if (!bases) {
-            // Large n: Use random bases between [2, n-2] (as BigInt or Number)
             roundBases = [];
             for (let i = 0; i < rounds; i++) {
-                if (isBig) {
-                    // Secure random BigInt base between 2 and n-2
-                    let bStr = (BigInt("2") + BigInt(Math.floor(Math.random() * Number(n-4n)))).toString();
-                    roundBases.push(BigInt(bStr));
-                } else {
-                    roundBases.push(2 + Math.floor(Math.random() * (n - 3)));
-                }
+                roundBases.push(randomBigIntBase(n));
             }
         }
         // Write n-1 as d*2^r
-        let d = n - one;
+        let d = n - 1n;
         let r = 0;
-        while (d % two === 0) {
-            d = d / two;
+        while (d % 2n === 0n) {
+            d /= 2n;
             r++;
         }
-        outer: for (const a of roundBases) {
-            let base = isBig ? BigInt(a) : a;
+        outer: for (const base of roundBases) {
             if (base >= n) continue;
             let x = modPow(base, d, n);
-            if (x === one || x === n - one) continue;
+            if (x === 1n || x === n - 1n) continue;
             for (let j = 1; j < r; j++) {
-                x = modPow(x, two, n);
-                if (x === n - one) continue outer;
+                x = modPow(x, 2n, n);
+                if (x === n - 1n) continue outer;
             }
             return false;
         }
@@ -162,36 +169,26 @@ primeFunctions.isPrime = (
 };
 
 primeFunctions.isPrimeOld = (val) => {
-    res = true;
+    if (val < 2) return false;
     for (let i = 2; i < val; i++) {
         if (val % i == 0) {
-            res = false;
-            break;
+            return false;
         }
     }
-    return res;
+    return true;
 }
 
 primeFunctions.nthPrime = (val) => {
+    if (val < 1) return false;
+    if (val == 1) return 2;
     let counter = 1;
-    if (val == 1) {
-        return 2;
-    } else {
-        var res = false;
-        let loop = true;
-        let i = 3;
-        while(loop){
-            if (primeFunctions.isPrime(i)) {
-                counter += 1;
-                if (counter === val) {
-                    res = i;
-                    loop = false;
-                    break;
-                }
-            }
-            i+=2;
+    let i = 3;
+    while (true) {
+        if (primeFunctions.isPrime(i)) {
+            counter += 1;
+            if (counter === val) return i;
         }
-        return res;
+        i += 2;
     }
 }
 
@@ -199,16 +196,11 @@ primeFunctions.indexOfPrime = (val) => { // 0 is first index
     if (!primeFunctions.isPrime(val))
         return false;
     else {
-        var i = 1;
-        var res;
-        while (true) {
-            if (primeFunctions.nthPrime(i) == val) {
-                res = i;
-                break;
-            }
-            i++;
+        let count = 0;
+        for (let i = 2; i < val; i++) {
+            if (primeFunctions.isPrime(i)) count += 1;
         }
-        return res - 1;
+        return count;
     }
 }
 
@@ -232,17 +224,9 @@ primeFunctions.nextPrime = (val) => {
     if (!primeFunctions.isPrime(val))
         return false;
     else {
-        var counter = 1;
-        var stopCounter;
-        while (1 == 1) {
-            var currPrime = primeFunctions.nthPrime(counter);
-            if (currPrime == val) {
-                stopCounter = counter;
-                break;
-            } else
-                counter += 1;
-        }
-        return primeFunctions.nthPrime(stopCounter + 1);
+        let i = val + 1;
+        while (!primeFunctions.isPrime(i)) i += 1;
+        return i;
     }
 }
 
@@ -250,51 +234,26 @@ primeFunctions.prevPrime = (val) => {
     if (!primeFunctions.isPrime(val) || val == 2)
         return false;
     else {
-        var counter = 1;
-        var stopCounter;
-        while (1 == 1) {
-            var currPrime = primeFunctions.nthPrime(counter);
-            if (currPrime == val) {
-                stopCounter = counter;
-                break;
-            } else
-                counter += 1;
-        }
-        return primeFunctions.nthPrime(stopCounter - 1);
+        let i = val - 1;
+        while (!primeFunctions.isPrime(i)) i -= 1;
+        return i;
     }
 }
 
 primeFunctions.primeSmallerThan = (val) => {
-    if (primeFunctions.isPrime(val)) {
-        return primeFunctions.prevPrime(val);
-    } else {
-        var i = 1;
-        var res;
-        while (1 == 1) {
-            if (val < primeFunctions.nthPrime(i + 1) && val > primeFunctions.nthPrime(i)) {
-                res = primeFunctions.nthPrime(i);
-                break;
-            }
-            i += 1;
-        }
-        return res;
+    let i = Math.ceil(val) - 1;
+    while (i >= 2) {
+        if (primeFunctions.isPrime(i)) return i;
+        i -= 1;
     }
+    return false;
 }
 
 primeFunctions.primeBiggerThan = (val) => {
-    if (primeFunctions.isPrime(val))
-        return primeFunctions.nextPrime(val);
-    else {
-        var i = 1;
-        var res;
-        while (1 == 1) {
-            if (val > primeFunctions.nthPrime(i) && val < primeFunctions.nthPrime(i + 1)) {
-                res = primeFunctions.nthPrime(i + 1);
-                break;
-            }
-            i += 1;
-        }
-        return res;
+    let i = Math.floor(val) + 1;
+    while (true) {
+        if (primeFunctions.isPrime(i)) return i;
+        i += 1;
     }
 }
 
@@ -302,14 +261,20 @@ primeFunctions.primeDivisors = (val) => {
     if (primeFunctions.isPrime(val))
         return false; //Prime
     else {
-        var arr = [];
-        if (val % 2 == 0)
-            arr.push(2);
-        for (var i = 3; i < val; i += 2) {
-            if (primeFunctions.isPrime(i) && val % i == 0)
-                arr.push(i);
+        let n = val;
+        let divisors = [];
+        if (n % 2 == 0) {
+            divisors.push(2);
+            while (n % 2 == 0) n /= 2;
         }
-        return arr;
+        for (let i = 3; i * i <= n; i += 2) {
+            if (n % i == 0) {
+                divisors.push(i);
+                while (n % i == 0) n /= i;
+            }
+        }
+        if (n > 1) divisors.push(n);
+        return divisors;
     }
 }
 
@@ -343,53 +308,30 @@ primeFunctions.isMersennePrime = (val) => {
     if (!primeFunctions.isPrime(val))
         return false;
     else {
-        val = val + 1;
-        let primeDiv = primeFunctions.primeDivisors(val);
-        if (primeDiv.length == 1 && primeDiv[0] === 2)
-            return true;
-        else
-            return false;
+        let m = val + 1;
+        while (m % 2 === 0) m /= 2;
+        return m === 1;
     }
 }
 
-primeFunctions.nthMersennePrime = (val) => { // 0 is first
+primeFunctions.nthMersennePrime = (val) => { // 1 is first
+    if (val < 1) return false;
     let counter = 0;
-    let res = false;
-    let loop = true;
     let i = 1;
-    while(loop){
+    while (true) {
         let curr = Math.pow(2, i) - 1;
         if (primeFunctions.isPrime(curr)) {
             counter += 1;
-            if (counter == val) {
-                res = curr;
-                loop = false;
-                break;
-            }
+            if (counter === val) return curr;
         }
-        i+=1;
+        i += 1;
     }
-    return res;
 }
 
 primeFunctions.nthMersennePrimeExponents = (val) => {
     let mersenne = primeFunctions.nthMersennePrime(val);
-    mersenne = mersenne + 1;
-    let i = 0;
-    let stop = false;
-    let ret = false;
-    while (stop == false) {
-        i += 1;
-        if (mersenne / 2 == 1) {
-            ret = i;
-            stop = true;
-            break;
-        } else {
-            mersenne = mersenne / 2;
-        }
-    }
-
-    return ret;
+    if (mersenne === false) return false;
+    return Math.round(Math.log2(mersenne + 1));
 }
 
 primeFunctions.isPrimeOrDivisors = (val) => {
@@ -400,14 +342,9 @@ primeFunctions.isPrimeOrDivisors = (val) => {
 }
 
 primeFunctions.primesSmallerThan = (val) => {
-    var i = 1;
-    var res = [];
-    while (1 == 1) {
-        res.push(primeFunctions.nthPrime(i));
-        if (val < primeFunctions.nthPrime(i + 1) && val > primeFunctions.nthPrime(i)) {
-            break;
-        }
-        i += 1;
+    let res = [];
+    for (let i = 2; i < val; i++) {
+        if (primeFunctions.isPrime(i)) res.push(i);
     }
     return res;
 }
@@ -441,25 +378,19 @@ primeFunctions.closestPrime = (val) => {
     return res;
 }
 
-primeFunctions.randomPrime = (minVal = 2, maxVal = 9999999999999999) => {
+primeFunctions.randomPrime = (minVal = 2, maxVal = Number.MAX_SAFE_INTEGER) => {
     let rnd = Math.floor(Math.random() * (maxVal - minVal)) + minVal;
-    rnd = primeFunctions.closestPrime(rnd);
-    return rnd;
+    let res = primeFunctions.closestPrime(rnd);
+    if (res < minVal) res = primeFunctions.primeBiggerThan(minVal - 1);
+    if (res > maxVal) res = primeFunctions.primeSmallerThan(maxVal + 1);
+    return res;
 }
 
 primeFunctions.randomPrimeDigits = (digit) => {
-    let a = "1";
-    let b = "9";
-    for (let i = 0; i < digit; i++) {
-        a += "0";
-        b += "9";
-    }
-
-    a = parseInt(a);
-    b = parseInt(b);
-    let prime = primeFunctions.randomPrime(a, b);
-    return prime;
-
+    if (digit < 1) return false;
+    let a = Math.max(2, Math.pow(10, digit - 1));
+    let b = Math.pow(10, digit) - 1;
+    return primeFunctions.randomPrime(a, b);
 }
 
 primeFunctions.nextNPrimes = (minVal, n) => {
@@ -491,35 +422,17 @@ primeFunctions.prevNPrimes = (maxVal, n) => {
 }
 
 primeFunctions.primesBetween = (p1, p2) => {
-    let check = true;
-    let start;
-    let finish;
-    if (p1 > p2) {
-        start = p2;
-        finish = p1;
-    } else if (p2 > p1) {
-        start = p1;
-        finish = p2;
-    } else {
-        check = false;
-    }
-    if (check) {
-        let res = [];
-        let first = primeFunctions.primeBiggerThan(start);
-        res.push(first);
-        let contin = true;
-        while (contin) {
-            first = primeFunctions.nextPrime(first);
-            if (first >= finish) {
-                contin = false;
-                break;
-            } else {
-                res.push(first);
-            }
-        }
-        return res;
-    } else
+    let start = Math.min(p1, p2);
+    let finish = Math.max(p1, p2);
+    if (start === finish)
         return false;
+    let res = [];
+    let current = primeFunctions.primeBiggerThan(start);
+    while (current < finish) {
+        res.push(current);
+        current = primeFunctions.nextPrime(current);
+    }
+    return res;
 }
 
 primeFunctions.firstNPrimes = (n) => {
@@ -528,7 +441,7 @@ primeFunctions.firstNPrimes = (n) => {
     else {
         let primes = [];
         let next = 2;
-        for (i = 1; i <= n; i++) {
+        for (let i = 1; i <= n; i++) {
             primes.push(next);
             next = primeFunctions.nextPrime(next);
         }
@@ -537,7 +450,7 @@ primeFunctions.firstNPrimes = (n) => {
 }
 
 primeFunctions.digits = (val) => {
-    return String(val).length;
+    return String(Math.trunc(Math.abs(val))).length;
 }
 
 primeFunctions.sum = (arr) => {
@@ -561,66 +474,35 @@ primeFunctions.remainDividedBy = (number, division) => {
 }
 
 primeFunctions.beautifyInteger = (number) => {
-    let len = primeFunctions.digits(number);
-    let str = String(number).split('');
-    str = str.reverse();
-    let res = '';
-    for (let i = 0; i < str.length; i++) {
-        res += str[i];
-        if ((i + 1) % 3 == 0 && i != str.length - 1) {
-            res += '.';
-        }
-
-    }
-    res = res.split('');
-    res = res.reverse();
-    res = res.join('');
-    return res;
+    return String(number).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
 primeFunctions.integerToText = (integer, language = 'en') => {
-    let alph;
-    if (language == 'en')
-        alph = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-    else if (language == 'tr')
-        alph = ['a', 'b', 'c', 'ç', 'd', 'e', 'f', 'g', 'ğ', 'h', 'ı', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'ö', 'p', 'r', 's', 'ş', 't', 'u', 'ü', 'v', 'y', 'z'];
-    integer = String(integer).split('');
-
-    let res = '';
-    for (let i = 0; i < integer.length; i++) {
-        res += alph[parseInt(integer[i])];
-    }
-    return res;
+    const alphabets = {
+        en: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'],
+        tr: ['a', 'b', 'c', 'ç', 'd', 'e', 'f', 'g', 'ğ', 'h', 'ı', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'ö', 'p', 'r', 's', 'ş', 't', 'u', 'ü', 'v', 'y', 'z']
+    };
+    const alph = alphabets[language] || alphabets.en;
+    return String(integer).split('').map(d => alph[parseInt(d)]).join('');
 }
 
 primeFunctions.isEmirp = (number) => {
-    let reverse = String(number).split('');
-    reverse = reverse.reverse();
-    reverse = parseInt(reverse.join(''));
-    if (primeFunctions.isPrime(number) && primeFunctions.isPrime(reverse))
-        return true;
-    else
-        return false;
+    let reverse = parseInt(String(number).split('').reverse().join(''));
+    if (reverse === number)
+        return false; // palindromic primes are not emirps
+    return primeFunctions.isPrime(number) && primeFunctions.isPrime(reverse);
 }
 
 primeFunctions.nthEmirp = (n) => {
-    let stop = true;
     let i = 11;
     let counter = 0;
-    let res;
-    while (stop) {
+    while (true) {
         if (primeFunctions.isEmirp(i)) {
             counter += 1;
-            if (counter == n) {
-                res = i;
-                stop = false;
-                break;
-            }
-
+            if (counter === n) return i;
         }
         i += 2;
     }
-    return res;
 }
 
 primeFunctions.hasTwinPrime = (prime, returnItsTwin = true) => {
@@ -649,21 +531,21 @@ primeFunctions.factorial = (number) => {
 }
 
 primeFunctions.wilsonsTheorem = (n, returnWithExplanation = true) => {
-    let res = '';
-    let res2;
-    if (primeFunctions.isPrime(n + 1) && primeFunctions.factorial(n) % (n + 1) === n) {
-        res2 = ((primeFunctions.factorial(n) % (n + 1)) / n) * (n - 1) + 2;
-    } else
-        res2 = false;
+    // n! mod (n+1) computed incrementally (instead of via factorial(n)) so
+    // it never overflows Number precision, however large n is.
+    let mod = n + 1;
+    let factMod = 1;
+    for (let i = 2; i <= n; i++) {
+        factMod = (factMod * i) % mod;
+    }
+    let result = (primeFunctions.isPrime(mod) && factMod === n % mod) ? mod : false;
     if (returnWithExplanation) {
-        res += "FORMULA: f(n) = ( " + n + "! mod(" + n + "+1) / n ) * ( " + n + "+1 ) + 2 ";
-        res += " --- CONDITIONS: if " + n + "+1 is prime if and only if " + n + "! mod(" + n + "+1) = " + n + " ";
         return {
-            formula: res,
-            result: res2
+            formula: "FORMULA: " + n + "! mod(" + n + "+1) should equal " + n + " --- CONDITIONS: " + n + "+1 is prime if and only if " + n + "! mod(" + n + "+1) = " + n,
+            result: result
         }
     } else {
-        return res2;
+        return result;
     }
 }
 
@@ -689,11 +571,7 @@ primeFunctions.integerToString = (number) => {
 }
 
 primeFunctions.integerToArray = (number) => {
-    let arr = String(number).split('');
-    for (let i = 0; i < arr.length; i++) {
-        arr[i] = parseInt(arr[i]);
-    }
-    return arr;
+    return String(Math.trunc(Math.abs(number))).split('').map(d => parseInt(d));
 }
 
 primeFunctions.firstNDigits = (number, n, returnAsInteger = true) => {
@@ -788,71 +666,16 @@ primeFunctions.isPandigitalPrime = (number) => {
     if (!primeFunctions.isPrime(number))
         return false;
     else {
-        let numArr = primeFunctions.integerToArray(number);
-        let res = true;
-        for (let i = 0; i < numArr.length; i++) {
-            let newArr = numArr.splice(i, 1);
-            if (newArr.indexOf(numArr[i]) != -1) {
-                res = false;
-                break;
-            }
+        // Pandigital here means: using digits 1..n exactly once, where n is
+        // the digit count (e.g. 4 digits -> must be a permutation of 1,2,3,4).
+        let digitsArr = primeFunctions.integerToArray(number).slice().sort((a, b) => a - b);
+        for (let i = 0; i < digitsArr.length; i++) {
+            if (digitsArr[i] !== i + 1) return false;
         }
-        return res;
+        return true;
     }
 }
 
-//console.log(typeof module);
-
-if (typeof exports !== 'undefined') {
-    if(typeof module !== 'undefined' && module.exports){
-    module.exports.printExecutionTime = primeFunctions.printExecutionTime;
-    module.exports.isPrime = primeFunctions.isPrime;
-    module.exports.isPrimeOld = primeFunctions.isPrimeOld;
-    module.exports.nthPrime = primeFunctions.nthPrime;
-    module.exports.indexOfPrime = primeFunctions.indexOfPrime;
-    module.exports.nthPrimesSum = primeFunctions.nthPrimesSum;
-    module.exports.nthPrimesTimes = primeFunctions.nthPrimesTimes;
-    module.exports.nextPrime = primeFunctions.nextPrime;
-    module.exports.prevPrime = primeFunctions.prevPrime;
-    module.exports.primeSmallerThan = primeFunctions.primeSmallerThan;
-    module.exports.primeBiggerThan = primeFunctions.primeBiggerThan;
-    module.exports.primeDivisors = primeFunctions.primeDivisors;
-    module.exports.primeDivisorsSum = primeFunctions.primeDivisorsSum;
-    module.exports.primeDivisorsTimes = primeFunctions.primeDivisorsTimes;
-    module.exports.isMersennePrime = primeFunctions.isMersennePrime;
-    module.exports.nthMersennePrime = primeFunctions.nthMersennePrime;
-    module.exports.nthMersennePrimeExponents = primeFunctions.nthMersennePrimeExponents;
-    module.exports.isPrimeOrDivisors = primeFunctions.isPrimeOrDivisors;
-    module.exports.primesSmallerThan = primeFunctions.primesSmallerThan;
-    module.exports.closestPrime = primeFunctions.closestPrime;
-    module.exports.randomPrime = primeFunctions.randomPrime;
-    module.exports.randomPrimeDigits = primeFunctions.randomPrimeDigits;
-    module.exports.nextNPrimes = primeFunctions.nextNPrimes;
-    module.exports.prevNPrimes = primeFunctions.prevNPrimes;
-    module.exports.primesBetween = primeFunctions.primesBetween;
-    module.exports.firstNPrimes = primeFunctions.firstNPrimes;
-    module.exports.digits = primeFunctions.digits;
-    module.exports.sum = primeFunctions.sum;
-    module.exports.times = primeFunctions.times;
-    module.exports.remainDividedBy = primeFunctions.remainDividedBy;
-    module.exports.beautifyInteger = primeFunctions.beautifyInteger;
-    module.exports.integerToText = primeFunctions.integerToText;
-    module.exports.isEmirp = primeFunctions.isEmirp;
-    module.exports.nthEmirp = primeFunctions.nthEmirp;
-    module.exports.hasTwinPrime = primeFunctions.hasTwinPrime;
-    module.exports.factorial = primeFunctions.factorial;
-    module.exports.wilsonsTheorem = primeFunctions.wilsonsTheorem;
-    module.exports.phi = primeFunctions.phi;
-    module.exports.totient = primeFunctions.totient;
-    module.exports.integerToString = primeFunctions.integerToString;
-    module.exports.integerToArray = primeFunctions.integerToArray;
-    module.exports.firstNDigits = primeFunctions.firstNDigits;
-    module.exports.lastNDigits = primeFunctions.lastNDigits;
-    module.exports.reverseNumber = primeFunctions.reverseNumber;
-    module.exports.isTruncatable = primeFunctions.isTruncatable;
-    module.exports.truncatableValues = primeFunctions.truncatableValues;
-    module.exports.nthTruncatablePrime = primeFunctions.nthTruncatablePrime;
-    module.exports.isPandigitalPrime = primeFunctions.isPandigitalPrime;
-} } else{
-    //console.log('browser');  
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = primeFunctions;
 }
